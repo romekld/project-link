@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf C:/Users/jerom/.claude/skills/*)",
+      "Bash(rm -rf C:/Users/jerom/.claude/plugins/cache/*)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(git submodule:*)",
+      "Bash(claude mcp:*)",
+      "mcp__playwright__browser_snapshot"
+    ]
+  },
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": false
+  }
+}
