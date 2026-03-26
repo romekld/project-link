@@ -1,1 +1,9 @@
-# Test fixtures — populated in Unit 2.3
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+@pytest.fixture
+def client() -> TestClient:
+    return TestClient(app)
