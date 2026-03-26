@@ -5,7 +5,7 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"Test": "Good"}
+    return {"status": "Healthy", "message": "Project Link API is running"}
 
 
 @app.get("/items/{item_id}")

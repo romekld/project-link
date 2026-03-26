@@ -7,7 +7,9 @@
       "Skill(update-config:*)",
       "Bash(git submodule:*)",
       "Bash(claude mcp:*)",
-      "mcp__playwright__browser_snapshot"
+      "mcp__playwright__browser_snapshot",
+      "Bash(export SUPABASE_PROJECT_REF=kloypsasgyrqcyqdpddj)",
+      "Bash(export SUPABASE_ACCESS_TOKEN=sbp_4f81055b87b0f83aa748dec88ddd2d1feb75d2ef)"
     ]
   },
   "enabledPlugins": {
