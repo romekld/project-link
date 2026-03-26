@@ -198,10 +198,13 @@
 | **Database** | Supabase (PostgreSQL 15+) | Managed Postgres with built-in Auth, RLS, Realtime, and Storage. |
 | **Spatial DB** | PostGIS extension | GeoJSON geometry storage; `ST_AsGeoJSON()` for RFC 7946 API output. |
 | **Backend API** | FastAPI (Python 3.12+) | Async-native; Pydantic v2 for FHSIS field validation; OpenAPI docs auto-generated. |
+| **Python Dep. Mgmt** | uv | Fast resolver; `pyproject.toml` + `uv.lock`; use `uv add` / `uv sync`. |
 | **Background Tasks** | Celery + Redis | ML job queue; report generation; defaulter-check scheduled tasks. |
-| **Frontend** | React 18 + TypeScript | Type-safe FHSIS forms; component reuse across BHS and CHO views. |
-| **Styling** | Tailwind CSS v3 | Utility-first; responsive for both web and PWA mobile views. |
-| **UI Components** | shadcn/ui | Accessible, high-contrast clinical dashboard components. |
+| **Frontend** | React **19** + TypeScript | Type-safe FHSIS forms; React Compiler enabled via `babel-plugin-react-compiler`. |
+| **Build Tool** | Vite **8** | Frontend bundler; `@tailwindcss/vite` plugin; `@` alias resolves to `src/`. |
+| **Styling** | Tailwind CSS **v4** | CSS-first config (no `tailwind.config.js`); all tokens defined in `src/index.css`. |
+| **UI Components** | shadcn/ui (**base-vega** style) | Uses `@base-ui/react` primitives (not Radix); `mist` base color; icons via `lucide-react`. |
+| **Package Manager** | npm | `package-lock.json` is the lock file; do not use pnpm or yarn. |
 | **PWA / Offline** | Vite PWA plugin + Workbox | Service worker generation; precaching; background sync strategy. |
 | **Offline Storage** | IndexedDB (via Dexie.js) | Structured offline storage for BHW pending records with sync queue. |
 | **Map Rendering** | MapLibre GL JS | Open-source; GeoJSON-native; choropleth + heatmap layers from PostGIS output. |
@@ -210,12 +213,43 @@
 | **Real-Time** | Supabase Realtime (WebSockets) | PIDSR Category I alert broadcast to DSO sessions. |
 | **Hosting (Web/PWA)** | Vercel | CDN-edge delivery; CI/CD on push to `main`. |
 | **Hosting (API/ML)** | DigitalOcean App Platform | Dockerized FastAPI + Celery workers; managed Redis add-on. |
-| **Containerization** | Docker + Docker Compose | Multi-stage builds; local orchestration mirrors production. |
+| **Containerization** | Docker + Docker Compose | Multi-stage builds; `docker compose up` is the **single local dev command** for the full stack. |
 | **Auth** | Supabase Auth (JWT) | Row-Level Security enforcement at the DB layer; role claim in JWT. |
 
 ---
 
 ### 2.2 Technical Architecture
+
+#### Repository & Folder Structure
+
+```
+project-link/
+├── backend/
+│   ├── app/              # FastAPI application (routers, models, services, schemas)
+│   │   ├── api/          # Route handlers, one sub-package per endpoint group
+│   │   ├── core/         # Config, auth, database session
+│   │   ├── models/       # SQLAlchemy ORM models
+│   │   ├── schemas/      # Pydantic v2 request/response schemas
+│   │   ├── services/     # Business logic (tally engine, ML, report export)
+│   │   └── main.py       # FastAPI app factory & lifespan
+│   ├── pyproject.toml    # uv-managed dependencies
+│   └── uv.lock
+├── frontend/
+│   ├── src/
+│   │   ├── components/   # Shared UI components (shadcn + custom)
+│   │   ├── lib/          # Utilities, Supabase client, Dexie DB
+│   │   └── hooks/        # Custom React hooks
+│   ├── components.json   # shadcn config (base-vega style, mist color)
+│   └── package.json
+├── e2e/                  # Playwright end-to-end tests
+├── docs/                 # architecture.md, changelog.md, project_status.md
+├── .env                  # Local secrets (gitignored)
+├── .env.example          # Env var reference (committed)
+├── docker-compose.yml    # Local full-stack orchestration
+└── CLAUDE.md
+```
+
+> `backend/main.py` is a temporary FastAPI smoke-test file. All real application code lives under `backend/app/`.
 
 #### System Overview
 
@@ -608,6 +642,7 @@ CREATE TABLE stock_transactions (
 
 | Service | Provider | Action Required |
 | :--- | :--- | :--- |
+| **Local Dev** | Docker Compose | `docker compose up` starts FastAPI + Celery + Redis + (optional) local Supabase proxy together. |
 | PostgreSQL + Auth + Realtime | Supabase | Create project; enable PostGIS; configure RLS policies per role; set JWT secret in FastAPI env. |
 | File Storage (report exports) | Supabase Storage | Create `reports` bucket with RLS; signed URLs for downloads. |
 | Backend API | DigitalOcean App Platform | Deploy Dockerized FastAPI app; set env vars (Supabase URL, JWT secret, Redis URL). |
@@ -630,3 +665,6 @@ CREATE TABLE stock_transactions (
 | 24-hour disease reporting (RA 11332) | Category I detection fires synchronously in the `disease_cases` insert handler before the API returns 201. |
 | Multi-BHS data isolation | Supabase RLS: BHW/Midwife rows filtered by `health_station_id`; PHN/above read all; enforced at DB layer, not just API. |
 | ML model serving | Models trained offline on historical MCT data, serialized as `.pkl`, loaded at FastAPI startup; retrained monthly via Celery beat. |
+| Local dev workflow | `docker compose up` from repo root. Frontend: `cd frontend && npm run dev`. Backend only: `cd backend && uv run uvicorn app.main:app --reload`. |
+| Tailwind CSS v4 | No `tailwind.config.js`; all design tokens and theme overrides live in `frontend/src/index.css` using `@theme`. |
+| shadcn components | Always install via `npx shadcn add <component>` from `frontend/`; never hand-write shadcn primitives. Uses `@base-ui/react`, not Radix. |
