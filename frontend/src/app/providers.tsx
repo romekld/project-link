@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react'
+import { AuthProvider } from '@/features/auth'
 
 interface ProvidersProps {
   children: ReactNode
 }
 
-// Compose global context providers here as they are installed.
-// Planned providers (Phase 2+):
-//   - Supabase Auth provider
-//   - TanStack Query client
-//   - Theme / dark mode context
 export function Providers({ children }: ProvidersProps) {
-  return <>{children}</>
+  return (
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  )
+  // Wave 3: wrap with QueryClientProvider (TanStack Query)
+  // Wave 3: wrap with RouterProvider (TanStack Router)
 }

@@ -1,2 +1,1 @@
-// Auth hooks — stub for Phase 2.
-export {}
+export { useAuth } from './useAuth'
