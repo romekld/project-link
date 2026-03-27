@@ -1,0 +1,18 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - heading "LINK" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Local Information Network for Kalusugan
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: Sign in
+      - generic [ref=e11]: Enter your credentials to access the system
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: Email
+        - textbox "Email" [ref=e16]:
+          - /placeholder: you@cho2.gov.ph
+      - generic [ref=e17]:
+        - generic [ref=e18]: Password
+        - textbox "Password" [ref=e19]
+      - button "Sign in" [ref=e20]
+  - paragraph [ref=e21]: This system is for authorized personnel of City Health Office II, Dasmariñas City only. Unauthorized access is prohibited.

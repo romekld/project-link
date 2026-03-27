@@ -1,0 +1,63 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - list [ref=e8]:
+      - listitem [ref=e9]:
+        - button "L LINK CHO II Dasmariñas" [ref=e10]:
+          - generic [ref=e11]:
+            - generic [ref=e12]: L
+            - generic [ref=e13]:
+              - generic [ref=e14]: LINK
+              - generic [ref=e15]: CHO II Dasmariñas
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Navigation
+        - list
+      - generic [ref=e19]:
+        - generic [ref=e20]: Quick Links
+        - list
+    - list [ref=e22]:
+      - listitem [ref=e23]:
+        - button [ref=e24]:
+          - img [ref=e26]
+    - button "Toggle Sidebar" [ref=e29]
+  - main [ref=e30]:
+    - button "Toggle Sidebar" [ref=e32]:
+      - img
+      - generic [ref=e33]: Toggle Sidebar
+    - main [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - heading "Users" [level=1] [ref=e38]
+            - paragraph [ref=e39]: Manage system user accounts
+          - link "Create User" [ref=e40] [cursor=pointer]:
+            - /url: /admin/users/new
+            - img
+            - text: Create User
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - img [ref=e43]
+            - textbox "Search by name…" [ref=e46]
+          - combobox [ref=e47]:
+            - option "All roles" [selected]
+            - option "System Admin"
+            - option "City Health Officer"
+            - option "PHIS Coordinator"
+            - option "DSO"
+            - option "PHN"
+            - option "Midwife / RHM"
+            - option "BHW"
+          - combobox [ref=e48]:
+            - option "All BHS" [selected]
+        - table [ref=e51]:
+          - rowgroup [ref=e52]:
+            - row "Name Username Role BHS Status Actions" [ref=e53]:
+              - columnheader "Name" [ref=e54]
+              - columnheader "Username" [ref=e55]
+              - columnheader "Role" [ref=e56]
+              - columnheader "BHS" [ref=e57]
+              - columnheader "Status" [ref=e58]
+              - columnheader "Actions" [ref=e59]
+          - rowgroup [ref=e60]:
+            - row "Loading…" [ref=e61]:
+              - cell "Loading…" [ref=e62]

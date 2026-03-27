@@ -1,16 +1,26 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useSetPageMeta } from '@/contexts/page-context'
 import { UserForm } from './components/user-form'
 
 export function EditUserPage() {
   const { id } = useParams({ from: '/admin/users/$id/edit' })
 
+  useSetPageMeta({
+    title: 'Edit User',
+    breadcrumbs: [
+      { label: 'Dashboard', href: '/admin/dashboard' },
+      { label: 'Users', href: '/admin/users' },
+      { label: 'Edit User' },
+    ],
+  })
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" render={<Link to="/admin/users" />} className="-ml-1">
-          <ChevronLeft className="mr-1 h-4 w-4" />
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/admin/users" />} className="-ml-1">
+          <ChevronLeft className="mr-1 size-4" />
           Back to Users
         </Button>
       </div>

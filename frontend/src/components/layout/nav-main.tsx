@@ -28,7 +28,7 @@ export function NavMain({ items }: NavMainProps) {
   const toggle = (title: string) => {
     setOpenItems((prev) => {
       const next = new Set(prev)
-      next.has(title) ? next.delete(title) : next.add(title)
+      if (next.has(title)) { next.delete(title) } else { next.add(title) }
       return next
     })
   }
@@ -43,14 +43,12 @@ export function NavMain({ items }: NavMainProps) {
             return (
               <Collapsible key={item.title} open={isOpen} onOpenChange={() => toggle(item.title)}>
                 <SidebarMenuItem>
-                  <CollapsibleTrigger>
-                    <SidebarMenuButton tooltip={item.title}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                      <ChevronRight
-                        className={`ml-auto transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                      />
-                    </SidebarMenuButton>
+                  <CollapsibleTrigger render={<SidebarMenuButton tooltip={item.title} />}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                    <ChevronRight
+                      className={`ml-auto transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                    />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>

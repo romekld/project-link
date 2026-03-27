@@ -1,0 +1,73 @@
+- generic [ref=e22]:
+  - generic [ref=e25]:
+    - list [ref=e27]:
+      - listitem [ref=e28]:
+        - button "L LINK CHO II Dasmariñas" [ref=e128]:
+          - generic [ref=e30]:
+            - generic [ref=e31]: L
+            - generic [ref=e32]:
+              - generic [ref=e33]: LINK
+              - generic [ref=e34]: CHO II Dasmariñas
+    - generic [ref=e35]:
+      - generic [ref=e36]:
+        - generic [ref=e37]: Navigation
+        - list [ref=e38]:
+          - listitem [ref=e39]:
+            - link "Dashboard" [ref=e129] [cursor=pointer]:
+              - /url: /bhw/dashboard
+              - img [ref=e41]
+              - generic [ref=e46]: Dashboard
+          - listitem [ref=e48]:
+            - button "Patients" [expanded] [ref=e130]:
+              - button "Patients" [ref=e131]:
+                - img [ref=e51]
+                - generic [ref=e56]: Patients
+                - img [ref=e57]
+            - list [ref=e142]:
+              - listitem [ref=e143]:
+                - link "Search / Register" [ref=e144] [cursor=pointer]:
+                  - /url: /bhw/patients/search
+              - listitem [ref=e145]:
+                - link "Patient ITR" [ref=e146] [cursor=pointer]:
+                  - /url: /bhw/patients/itr
+          - listitem [ref=e60]:
+            - button "New Visit" [ref=e132]:
+              - button "New Visit" [ref=e133]:
+                - img [ref=e63]
+                - generic [ref=e66]: New Visit
+                - img [ref=e67]
+          - listitem [ref=e69]:
+            - link "Settings" [ref=e134] [cursor=pointer]:
+              - /url: /bhw/settings
+              - img [ref=e71]
+              - generic [ref=e74]: Settings
+      - generic [ref=e147]:
+        - generic [ref=e148]: Quick Links
+        - list [ref=e149]:
+          - listitem [ref=e150]:
+            - link "Offline Queue" [ref=e151] [cursor=pointer]:
+              - /url: /bhw/offline-queue
+              - img [ref=e152]
+              - generic [ref=e156]: Offline Queue
+          - listitem [ref=e157]:
+            - link "Sync Status" [ref=e158] [cursor=pointer]:
+              - /url: /bhw/sync-status
+              - img [ref=e159]
+              - generic [ref=e161]: Sync Status
+    - list [ref=e91]:
+      - listitem [ref=e92]:
+        - button "A admin@projectlink.ph bhw" [ref=e137]:
+          - generic [ref=e94]: A
+          - generic [ref=e95]:
+            - generic [ref=e96]: admin@projectlink.ph
+            - generic [ref=e97]: bhw
+          - img [ref=e98]
+    - button "Toggle Sidebar" [active] [ref=e138]
+  - main [ref=e102]:
+    - button "Toggle Sidebar" [ref=e139]:
+      - img
+      - generic [ref=e105]: Toggle Sidebar
+    - main [ref=e106]:
+      - generic [ref=e107]:
+        - heading "BHW Dashboard" [level=1] [ref=e140]
+        - paragraph [ref=e109]: Patient visits and offline queue — Phase 2

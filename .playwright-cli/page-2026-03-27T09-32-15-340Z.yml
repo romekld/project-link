@@ -1,0 +1,173 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - list [ref=e8]:
+      - listitem [ref=e9]:
+        - button "L LINK CHO II Dasmariñas" [ref=e10]:
+          - generic [ref=e11]:
+            - generic [ref=e12]: L
+            - generic [ref=e13]:
+              - generic [ref=e14]: LINK
+              - generic [ref=e15]: CHO II Dasmariñas
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Navigation
+        - list [ref=e63]:
+          - listitem [ref=e64]:
+            - link "Dashboard" [ref=e65] [cursor=pointer]:
+              - /url: /admin/dashboard
+              - img [ref=e66]
+              - generic [ref=e71]: Dashboard
+          - listitem [ref=e73]:
+            - button "Users" [ref=e74]:
+              - button "Users" [ref=e75]:
+                - img [ref=e76]
+                - generic [ref=e81]: Users
+                - img [ref=e82]
+          - listitem [ref=e84]:
+            - link "BHS Registry" [ref=e85] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e86]
+              - generic [ref=e90]: BHS Registry
+          - listitem [ref=e91]:
+            - link "Audit Logs" [ref=e92] [cursor=pointer]:
+              - /url: /admin/audit-logs
+              - img [ref=e93]
+              - generic [ref=e96]: Audit Logs
+      - generic [ref=e19]:
+        - generic [ref=e20]: Quick Links
+        - list [ref=e97]:
+          - listitem [ref=e98]:
+            - link "Create User" [ref=e99] [cursor=pointer]:
+              - /url: /admin/users/new
+              - img [ref=e100]
+              - generic [ref=e103]: Create User
+          - listitem [ref=e104]:
+            - link "BHS Registry" [ref=e105] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e106]
+              - generic [ref=e110]: BHS Registry
+    - list [ref=e22]:
+      - listitem [ref=e23]:
+        - button "A admin@projectlink.ph system admin" [ref=e111]:
+          - generic [ref=e25]: A
+          - generic [ref=e112]:
+            - generic [ref=e113]: admin@projectlink.ph
+            - generic [ref=e114]: system admin
+          - img [ref=e26]
+    - button "Toggle Sidebar" [ref=e29]
+  - main [ref=e30]:
+    - button "Toggle Sidebar" [ref=e32]:
+      - img
+      - generic [ref=e33]: Toggle Sidebar
+    - main [ref=e34]:
+      - generic [ref=e127]:
+        - link "Back to Users" [ref=e129] [cursor=pointer]:
+          - /url: /admin/users
+          - img
+          - text: Back to Users
+        - generic [ref=e130]:
+          - heading "Edit User" [level=1] [ref=e131]
+          - paragraph [ref=e132]: Update user details. Role or BHS changes take effect immediately via the JWT claim trigger.
+        - generic [ref=e134]:
+          - generic [ref=e135]:
+            - generic [ref=e136]:
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - text: Full Name
+                  - generic [ref=e139]: "*"
+                - textbox "Full Name *" [ref=e140]:
+                  - /placeholder: Last, First, Middle
+                  - text: System Admin
+              - generic [ref=e141]:
+                - generic [ref=e142]:
+                  - text: Username
+                  - generic [ref=e143]: "*"
+                - textbox "Username *" [ref=e144]:
+                  - /placeholder: e.g. s.redona_kld
+                  - text: system_admin
+              - generic [ref=e145]:
+                - generic [ref=e146]:
+                  - text: Date of Birth
+                  - generic [ref=e147]: "*"
+                - textbox "Date of Birth *" [ref=e148]: 1990-01-01
+              - generic [ref=e149]:
+                - generic [ref=e150]:
+                  - text: Sex
+                  - generic [ref=e151]: "*"
+                - combobox "Sex *" [ref=e152]:
+                  - option "Select…"
+                  - option "Male" [selected]
+                  - option "Female"
+              - generic [ref=e153]:
+                - generic [ref=e154]: Mobile Number
+                - textbox "Mobile Number" [ref=e155]:
+                  - /placeholder: "+639171234567"
+                - paragraph [ref=e156]: "Format: +639XXXXXXXXX"
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - text: Role
+                  - generic [ref=e159]: "*"
+                - combobox "Role *" [ref=e160]:
+                  - option "Select role…"
+                  - option "System Administrator"
+                  - option "City Health Officer"
+                  - option "PHIS Coordinator"
+                  - option "Disease Surveillance Officer"
+                  - option "Public Health Nurse"
+                  - option "Midwife / RHM"
+                  - option "Barangay Health Worker" [selected]
+              - generic [ref=e161]:
+                - generic [ref=e162]:
+                  - text: BHS Assignment
+                  - generic [ref=e163]: "*"
+                - combobox "BHS Assignment *" [ref=e164]:
+                  - option "Select station…" [selected]
+                  - option "Burol I Health Station"
+                  - option "Burol II Health Station"
+                  - option "Burol III Health Station"
+                  - option "Emmanuel Bergado I Health Station"
+                  - option "Emmanuel Bergado II Health Station"
+                  - option "Fatima I Health Station"
+                  - option "Fatima II Health Station"
+                  - option "Fatima III Health Station"
+                  - option "Luzviminda I Health Station"
+                  - option "Luzviminda II Health Station"
+                  - option "San Andres I Health Station"
+                  - option "San Andres II Health Station"
+                  - option "San Antonio de Padua I Health Station"
+                  - option "San Antonio de Padua II Health Station"
+                  - option "San Francisco I Health Station"
+                  - option "San Francisco II Health Station"
+                  - option "San Lorenzo Ruiz I Health Station"
+                  - option "San Lorenzo Ruiz II Health Station"
+                  - option "San Luis I Health Station"
+                  - option "San Luis II Health Station"
+                  - option "San Mateo Health Station"
+                  - option "San Nicolas I Health Station"
+                  - option "San Nicolas II Health Station"
+                  - option "San Roque (Sta. Cristina II) Health Station"
+                  - option "San Simon (Barangay 7) Health Station"
+                  - option "Santa Cristina I Health Station"
+                  - option "Santa Cristina II Health Station"
+                  - option "Santa Cruz I Health Station"
+                  - option "Santa Cruz II Health Station"
+                  - option "Santa Fe Health Station"
+                  - option "Santa Maria (Barangay 20) Health Station"
+                  - option "Victoria Reyes Health Station"
+              - generic [ref=e165]:
+                - generic [ref=e166]: Purok Assignment
+                - textbox "Purok Assignment" [ref=e167]:
+                  - /placeholder: e.g. Purok 3
+            - generic [ref=e168]:
+              - button "Save Changes" [ref=e169]
+              - button "Cancel" [ref=e170]
+          - generic [ref=e172]:
+            - generic [ref=e174]: Barangay Health Worker
+            - generic [ref=e175]:
+              - paragraph [ref=e176]: Field-level health worker capturing patient visits in the barangay.
+              - generic [ref=e177]:
+                - paragraph [ref=e178]: Access
+                - list [ref=e179]:
+                  - listitem [ref=e180]: Patient registration & ITR
+                  - listitem [ref=e182]: Visit records (maternal, immunization, NCD, TB, nutrition)
+                  - listitem [ref=e184]: Offline data capture & sync

@@ -1,0 +1,80 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - list [ref=e8]:
+      - listitem [ref=e9]:
+        - button "L LINK CHO II Dasmariñas" [ref=e109]:
+          - generic [ref=e11]:
+            - generic [ref=e12]: L
+            - generic [ref=e13]:
+              - generic [ref=e14]: LINK
+              - generic [ref=e15]: CHO II Dasmariñas
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Navigation
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e110] [cursor=pointer]:
+              - /url: /bhw/dashboard
+              - img [ref=e22]
+              - generic [ref=e27]: Dashboard
+          - listitem [ref=e29]:
+            - button "Patients" [ref=e111]:
+              - button "Patients" [ref=e112]:
+                - img [ref=e32]
+                - generic [ref=e37]: Patients
+                - img [ref=e38]
+          - listitem [ref=e41]:
+            - button "New Visit" [ref=e113]:
+              - button "New Visit" [ref=e114]:
+                - img [ref=e44]
+                - generic [ref=e47]: New Visit
+                - img [ref=e48]
+          - listitem [ref=e50]:
+            - link "Settings" [ref=e115] [cursor=pointer]:
+              - /url: /bhw/settings
+              - img [ref=e52]
+              - generic [ref=e55]: Settings
+      - generic [ref=e56]:
+        - generic [ref=e57]: Quick Links
+        - list [ref=e58]:
+          - listitem [ref=e59]:
+            - link "Offline Queue" [ref=e116] [cursor=pointer]:
+              - /url: /bhw/offline-queue
+              - img [ref=e61]
+              - generic [ref=e65]: Offline Queue
+          - listitem [ref=e66]:
+            - link "Sync Status" [ref=e117] [cursor=pointer]:
+              - /url: /bhw/sync-status
+              - img [ref=e68]
+              - generic [ref=e70]: Sync Status
+    - list [ref=e72]:
+      - listitem [ref=e73]:
+        - button "A admin@projectlink.ph bhw" [expanded] [ref=e118]:
+          - generic [ref=e75]: A
+          - generic [ref=e76]:
+            - generic [ref=e77]: admin@projectlink.ph
+            - generic [ref=e78]: bhw
+          - img [ref=e79]
+        - menu "A admin@projectlink.ph bhw" [active] [ref=e126]:
+          - group "admin@projectlink.ph" [ref=e127]
+          - separator [ref=e128]
+          - group [ref=e129]:
+            - menuitem "Account" [ref=e130]:
+              - img
+              - text: Account
+            - menuitem "Settings" [ref=e131]:
+              - img
+              - text: Settings
+          - separator [ref=e132]
+          - menuitem "Log out" [ref=e133]:
+            - img
+            - text: Log out
+    - button "Toggle Sidebar" [ref=e119]
+  - main [ref=e83]:
+    - button "Toggle Sidebar" [ref=e120]:
+      - img
+      - generic [ref=e86]: Toggle Sidebar
+    - main [ref=e87]:
+      - generic [ref=e88]:
+        - heading "BHW Dashboard" [level=1] [ref=e121]
+        - paragraph [ref=e90]: Patient visits and offline queue — Phase 2

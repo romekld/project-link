@@ -95,6 +95,11 @@ const indexRoute = createRoute({
 // BHW routes
 // ---------------------------------------------------------------------------
 import { BHWDashboardPage } from '@/pages/bhw/dashboard'
+import { PatientSearchPage } from '@/pages/bhw/patients/search'
+import { PatientRegistrationPage } from '@/pages/bhw/patients/new'
+import { PatientDetailPage } from '@/pages/bhw/patients/$id'
+import { NewEncounterPage } from '@/pages/bhw/patients/$id.encounters.new'
+import { EncounterDetailPage } from '@/pages/bhw/patients/$id.encounters.$eid'
 import { PlaceholderPage } from '@/pages/placeholder'
 
 const bhwLayoutRoute = createRoute({
@@ -107,6 +112,31 @@ const bhwDashboardRoute = createRoute({
   getParentRoute: () => bhwLayoutRoute,
   path: '/dashboard',
   component: BHWDashboardPage,
+})
+const bhwPatientsSearchRoute = createRoute({
+  getParentRoute: () => bhwLayoutRoute,
+  path: '/patients/search',
+  component: PatientSearchPage,
+})
+const bhwPatientsNewRoute = createRoute({
+  getParentRoute: () => bhwLayoutRoute,
+  path: '/patients/new',
+  component: PatientRegistrationPage,
+})
+const bhwPatientDetailRoute = createRoute({
+  getParentRoute: () => bhwLayoutRoute,
+  path: '/patients/$id',
+  component: PatientDetailPage,
+})
+const bhwEncounterNewRoute = createRoute({
+  getParentRoute: () => bhwLayoutRoute,
+  path: '/patients/$id/encounters/new',
+  component: NewEncounterPage,
+})
+const bhwEncounterDetailRoute = createRoute({
+  getParentRoute: () => bhwLayoutRoute,
+  path: '/patients/$id/encounters/$eid',
+  component: EncounterDetailPage,
 })
 const bhwCatchAllRoute = createRoute({
   getParentRoute: () => bhwLayoutRoute,
@@ -270,7 +300,15 @@ const adminCatchAllRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
-  bhwLayoutRoute.addChildren([bhwDashboardRoute, bhwCatchAllRoute]),
+  bhwLayoutRoute.addChildren([
+    bhwDashboardRoute,
+    bhwPatientsSearchRoute,
+    bhwPatientsNewRoute,
+    bhwPatientDetailRoute,
+    bhwEncounterNewRoute,
+    bhwEncounterDetailRoute,
+    bhwCatchAllRoute,
+  ]),
   midwifeLayoutRoute.addChildren([midwifeDashboardRoute, midwifeCatchAllRoute]),
   phnLayoutRoute.addChildren([phnDashboardRoute, phnCatchAllRoute]),
   phisLayoutRoute.addChildren([phisDashboardRoute, phisCatchAllRoute]),

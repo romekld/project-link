@@ -1,0 +1,32 @@
+[     567ms] [ERROR] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:5174/src/components/ui/button.tsx:76:24)
+    at UserListPage (http://localhost:5174/src/pages/admin/users/index.tsx:213:35)
+    at http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6470:63
+    at mountMemo (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=cea14d07:4930:20)
+    at Object.useMemo (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=cea14d07:13023:13)
+    at exports.useMemo (http://localhost:5174/node_modules/.vite/deps/react-3_O8oni9.js?v=827c02bd:767:31)
+    at MatchInnerImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6468:27)
+    at MatchView (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6391:54)
+    at MatchImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6339:52)
+    at OutletImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6547:63)
+    at AppShell (http://localhost:5174/src/components/layout/app-shell.tsx?t=1774604030701:48:30)
+    at http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6470:63
+    at mountMemo (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=cea14d07:4930:20)
+    at Object.useMemo (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=cea14d07:13023:13)
+    at exports.useMemo (http://localhost:5174/node_modules/.vite/deps/react-3_O8oni9.js?v=827c02bd:767:31)
+    at MatchInnerImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6468:27)
+    at MatchView (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6391:54)
+    at MatchImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6339:52)
+    at OutletImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6547:63)
+    at component (http://localhost:5174/src/app/router.tsx?t=1774604068532:42:117)
+    at http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6470:63
+    at mountMemo (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=cea14d07:4930:20)
+    at Object.useMemo (http://localhost:5174/node_modules/.vite/deps/react-dom_client.js?v=cea14d07:13023:13)
+    at exports.useMemo (http://localhost:5174/node_modules/.vite/deps/react-3_O8oni9.js?v=827c02bd:767:31)
+    at MatchInnerImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6468:27)
+    at MatchView (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6391:54)
+    at MatchImpl (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6339:52)
+    at MatchesInner (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6671:78)
+    at Matches (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6662:140)
+    at RouterProvider (http://localhost:5174/node_modules/.vite/deps/@tanstack_react-router.js?v=bd46baa7:6848:56)
+    at App (http://localhost:5174/src/App.tsx?t=1774604068532:16:24) @ http://localhost:5174/@vite/client:509

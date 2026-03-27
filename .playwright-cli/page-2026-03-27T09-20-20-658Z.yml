@@ -1,0 +1,83 @@
+- generic [ref=e1]:
+  - generic [ref=e22]:
+    - generic [ref=e25]:
+      - list [ref=e27]:
+        - listitem [ref=e28]:
+          - button [ref=e29]:
+            - generic [ref=e30]:
+              - generic [ref=e31]: L
+              - generic [ref=e32]:
+                - generic [ref=e33]: LINK
+                - generic [ref=e34]: CHO II Dasmariñas
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]: Navigation
+          - list [ref=e38]:
+            - listitem [ref=e39]:
+              - link [ref=e40] [cursor=pointer]:
+                - /url: /bhw/dashboard
+                - img [ref=e41]
+                - generic [ref=e46]: Dashboard
+            - listitem [ref=e48]:
+              - button [ref=e49]:
+                - button [ref=e50]:
+                  - img [ref=e51]
+                  - generic [ref=e56]: Patients
+                  - img [ref=e57]
+            - listitem [ref=e60]:
+              - button [ref=e61]:
+                - button [ref=e62]:
+                  - img [ref=e63]
+                  - generic [ref=e66]: New Visit
+                  - img [ref=e67]
+            - listitem [ref=e69]:
+              - link [ref=e70] [cursor=pointer]:
+                - /url: /bhw/settings
+                - img [ref=e71]
+                - generic [ref=e74]: Settings
+        - generic [ref=e75]:
+          - generic [ref=e76]: Quick Links
+          - list [ref=e77]:
+            - listitem [ref=e78]:
+              - link [ref=e79] [cursor=pointer]:
+                - /url: /bhw/offline-queue
+                - img [ref=e80]
+                - generic [ref=e84]: Offline Queue
+            - listitem [ref=e85]:
+              - link [ref=e86] [cursor=pointer]:
+                - /url: /bhw/sync-status
+                - img [ref=e87]
+                - generic [ref=e89]: Sync Status
+      - list [ref=e91]:
+        - listitem [ref=e92]:
+          - button [ref=e93]:
+            - generic [ref=e94]: A
+            - generic [ref=e95]:
+              - generic [ref=e96]: admin@projectlink.ph
+              - generic [ref=e97]: bhw
+            - img [ref=e98]
+      - button [ref=e101]
+    - main [ref=e102]:
+      - button [ref=e104]:
+        - img
+        - generic [ref=e105]: Toggle Sidebar
+      - main [ref=e106]:
+        - generic [ref=e107]:
+          - heading [level=1] [ref=e108]: BHW Dashboard
+          - paragraph [ref=e109]: Patient visits and offline queue — Phase 2
+  - dialog "Change your password" [ref=e113]:
+    - generic [ref=e114]:
+      - heading "Change your password" [level=2] [ref=e115]
+      - paragraph [ref=e116]: For security, you must set a new password before continuing. Your password must be at least 12 characters.
+    - generic [ref=e117]:
+      - generic [ref=e118]:
+        - generic [ref=e119]: New password
+        - textbox "New password" [active] [ref=e120]:
+          - /placeholder: Minimum 12 characters
+      - generic [ref=e121]:
+        - generic [ref=e122]: Confirm password
+        - textbox "Confirm password" [ref=e123]:
+          - /placeholder: Re-enter password
+      - generic [ref=e124]:
+        - button "Skip for now" [ref=e125]
+        - button "Set password" [ref=e126]

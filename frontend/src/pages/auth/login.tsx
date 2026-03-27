@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Plus } from 'lucide-react'
 import type { UserRole } from '@/types'
 
 const ROLE_ROOTS: Record<UserRole, string> = {
@@ -47,18 +48,21 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
-        {/* Logo / branding */}
-        <div className="text-center">
-          <h1 className="font-heading text-3xl font-bold tracking-tight">LINK</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Local Information Network for Kalusugan
-          </p>
+        {/* Brand mark */}
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Plus className="size-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <p className="font-heading text-2xl font-bold tracking-tight text-foreground">LINK</p>
+            <p className="text-sm text-muted-foreground">Local Information Network for Kalusugan</p>
+          </div>
         </div>
 
         <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Sign in</CardTitle>
-            <CardDescription>Enter your credentials to access the system</CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl">Sign in</CardTitle>
+            <CardDescription>Enter your credentials to continue</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -91,7 +95,7 @@ export function LoginPage() {
               </div>
 
               {error && (
-                <p className="text-sm font-medium text-destructive">{error}</p>
+                <p className="text-sm font-medium text-destructive" role="alert">{error}</p>
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
@@ -101,10 +105,8 @@ export function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* CHO2 access notice */}
         <p className="text-center text-xs text-muted-foreground">
-          This system is for authorized personnel of City Health Office II, Dasmariñas City only.
-          Unauthorized access is prohibited.
+          Authorized personnel of City Health Office II, Dasmariñas City only.
         </p>
       </div>
     </div>

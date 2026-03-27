@@ -1,0 +1,52 @@
+- generic [ref=e22]:
+  - generic [ref=e25]:
+    - list [ref=e27]:
+      - listitem [ref=e28]:
+        - button "L LINK CHO II Dasmariñas" [ref=e128]:
+          - generic [ref=e30]:
+            - generic [ref=e31]: L
+            - generic [ref=e32]:
+              - generic [ref=e33]: LINK
+              - generic [ref=e34]: CHO II Dasmariñas
+    - generic [ref=e36]:
+      - generic [ref=e37]: Navigation
+      - list [ref=e38]:
+        - listitem [ref=e39]:
+          - link "Dashboard" [ref=e129] [cursor=pointer]:
+            - /url: /bhw/dashboard
+            - img [ref=e41]
+            - generic: Dashboard
+        - listitem [ref=e48]:
+          - button "Patients" [expanded] [ref=e130]:
+            - button "Patients" [ref=e131]:
+              - img [ref=e51]
+              - generic [ref=e56]: Patients
+              - img [ref=e57]
+        - listitem [ref=e60]:
+          - button "New Visit" [ref=e132]:
+            - button "New Visit" [ref=e133]:
+              - img [ref=e63]
+              - generic [ref=e66]: New Visit
+              - img [ref=e67]
+        - listitem [ref=e69]:
+          - link "Settings" [ref=e134] [cursor=pointer]:
+            - /url: /bhw/settings
+            - img [ref=e71]
+            - generic: Settings
+    - list [ref=e91]:
+      - listitem [ref=e92]:
+        - button "A admin@projectlink.ph bhw" [ref=e137]:
+          - generic [ref=e94]: A
+          - generic:
+            - generic: admin@projectlink.ph
+            - generic: bhw
+          - img [ref=e98]
+    - button "Toggle Sidebar" [active] [ref=e138]
+  - main [ref=e102]:
+    - button "Toggle Sidebar" [ref=e139]:
+      - img
+      - generic [ref=e105]: Toggle Sidebar
+    - main [ref=e106]:
+      - generic [ref=e107]:
+        - heading "BHW Dashboard" [level=1] [ref=e140]
+        - paragraph [ref=e109]: Patient visits and offline queue — Phase 2

@@ -1,0 +1,6 @@
+[   20099ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:54321/auth/v1/token?grant_type=password:0
+[  132154ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:54321/auth/v1/token?grant_type=password:0
+[  133434ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:54321/auth/v1/token?grant_type=password:0
+[  134105ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:54321/auth/v1/token?grant_type=password:0
+[  137639ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:54321/auth/v1/token?grant_type=password:0
+[  149771ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:54321/auth/v1/token?grant_type=password:0

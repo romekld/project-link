@@ -8,8 +8,8 @@ import {
   Map,
   TrendingUp,
   Settings,
-  Building2,
-  ScrollText,
+  Hospital,
+  ClipboardClock,
   Database,
   ShieldCheck,
   Baby,
@@ -42,13 +42,7 @@ export interface QuickLink {
 export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
   bhw: [
     { title: 'Dashboard', url: '/bhw/dashboard', icon: LayoutDashboard },
-    {
-      title: 'Patients', url: '/bhw/patients', icon: Users,
-      children: [
-        { title: 'Search / Register', url: '/bhw/patients/search' },
-        { title: 'Patient ITR', url: '/bhw/patients/itr' },
-      ],
-    },
+    { title: 'Patients', url: '/bhw/patients/search', icon: Users },
     {
       title: 'New Visit', url: '/bhw/visits', icon: ClipboardList,
       children: [
@@ -118,7 +112,7 @@ export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
   dso: [
     { title: 'Dashboard', url: '/dso/dashboard', icon: LayoutDashboard },
     { title: 'Disease Alerts', url: '/dso/alerts', icon: Bell },
-    { title: 'PIDSR Log', url: '/dso/pidsr', icon: ScrollText },
+    { title: 'PIDSR Log', url: '/dso/pidsr', icon: ClipboardClock },
     { title: 'CIF Workflow', url: '/dso/cif', icon: FileText },
     { title: 'Compliance Metrics', url: '/dso/compliance', icon: ShieldCheck },
     {
@@ -151,8 +145,8 @@ export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
         { title: 'Create User', url: '/admin/users/new' },
       ],
     },
-    { title: 'BHS Registry', url: '/admin/bhs', icon: Building2 },
-    { title: 'Audit Logs', url: '/admin/audit-logs', icon: ScrollText },
+    { title: 'BHS Registry', url: '/admin/bhs', icon: Hospital },
+    { title: 'Audit Logs', url: '/admin/audit-logs', icon: ClipboardClock },
   ],
 }
 
@@ -183,6 +177,6 @@ export const QUICK_LINKS_CONFIG: Record<UserRole, QuickLink[]> = {
   ],
   system_admin: [
     { title: 'Create User', url: '/admin/users/new', icon: UserPlus },
-    { title: 'BHS Registry', url: '/admin/bhs', icon: Building2 },
+    { title: 'BHS Registry', url: '/admin/bhs', icon: Hospital },
   ],
 }

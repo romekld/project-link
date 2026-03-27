@@ -5,6 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { UserProfile, UserRole } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -140,6 +147,16 @@ export function UserForm({ mode, userId }: UserFormProps) {
     e.preventDefault()
     setError(null)
 
+    if (!role) {
+      setError('Role is required.')
+      return
+    }
+
+    if (!sex) {
+      setError('Sex is required.')
+      return
+    }
+
     // Validate mobile number format if provided
     if (mobileNumber && !/^\+639\d{9}$/.test(mobileNumber)) {
       setError('Mobile number must be in the format +639XXXXXXXXX (e.g. +639171234567).')
@@ -210,10 +227,10 @@ export function UserForm({ mode, userId }: UserFormProps) {
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Left column: form fields (spans 2 of 3 cols) */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Full Name */}
-            <div className="sm:col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="full-name">
                 Full Name <span className="text-destructive">*</span>
               </Label>
@@ -276,17 +293,15 @@ export function UserForm({ mode, userId }: UserFormProps) {
               <Label htmlFor="sex">
                 Sex <span className="text-destructive">*</span>
               </Label>
-              <select
-                id="sex"
-                value={sex}
-                onChange={(e) => setSex(e.target.value as 'M' | 'F')}
-                required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="">Select…</option>
-                <option value="M">Male</option>
-                <option value="F">Female</option>
-              </select>
+              <Select value={sex} onValueChange={(v) => setSex(v as 'M' | 'F')}>
+                <SelectTrigger id="sex" className="w-full">
+                  <SelectValue placeholder="Select…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">Male</SelectItem>
+                  <SelectItem value="F">Female</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Mobile Number */}
@@ -307,24 +322,25 @@ export function UserForm({ mode, userId }: UserFormProps) {
               <Label htmlFor="role">
                 Role <span className="text-destructive">*</span>
               </Label>
-              <select
-                id="role"
+              <Select
                 value={role}
-                onChange={(e) => {
-                  setRole(e.target.value as UserRole)
+                onValueChange={(v) => {
+                  setRole(v as UserRole)
                   setHealthStationId('')
                   setPurokAssignment('')
                 }}
-                required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="">Select role…</option>
-                {ROLE_OPTIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_DESCRIPTIONS[r].label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="role" className="w-full">
+                  <SelectValue placeholder="Select role…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_OPTIONS.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {ROLE_DESCRIPTIONS[r].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* BHS Assignment — only for bhw / midwife_rhm */}
@@ -333,20 +349,18 @@ export function UserForm({ mode, userId }: UserFormProps) {
                 <Label htmlFor="bhs">
                   BHS Assignment <span className="text-destructive">*</span>
                 </Label>
-                <select
-                  id="bhs"
-                  value={healthStationId}
-                  onChange={(e) => setHealthStationId(e.target.value)}
-                  required
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Select station…</option>
-                  {healthStations.map((hs) => (
-                    <option key={hs.id} value={hs.id}>
-                      {hs.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={healthStationId} onValueChange={(v) => setHealthStationId(v ?? '')}>
+                  <SelectTrigger id="bhs" className="w-full">
+                    <SelectValue placeholder="Select station…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {healthStations.map((hs) => (
+                      <SelectItem key={hs.id} value={hs.id}>
+                        {hs.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -365,7 +379,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
 
             {/* Initial Password — create only */}
             {mode === 'create' && (
-              <div className="sm:col-span-2 space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="password">
                   Initial Password <span className="text-destructive">*</span>
                 </Label>
@@ -395,12 +409,14 @@ export function UserForm({ mode, userId }: UserFormProps) {
           </div>
 
           {error && (
-            <p className="text-sm font-medium text-destructive">{error}</p>
+            <p className="text-sm font-medium text-destructive" role="alert">{error}</p>
           )}
 
           <div className="flex gap-3">
             <Button type="submit" disabled={loading}>
-              {loading ? (mode === 'create' ? 'Creating…' : 'Saving…') : (mode === 'create' ? 'Create User' : 'Save Changes')}
+              {loading
+                ? (mode === 'create' ? 'Creating…' : 'Saving…')
+                : (mode === 'create' ? 'Create User' : 'Save Changes')}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate({ to: '/admin/users' })}>
               Cancel
@@ -418,13 +434,13 @@ export function UserForm({ mode, userId }: UserFormProps) {
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">{selectedRoleInfo.description}</p>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Access
                   </p>
                   <ul className="space-y-1">
                     {selectedRoleInfo.access.map((item) => (
                       <li key={item} className="flex items-start gap-2 text-sm">
-                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
                         {item}
                       </li>
                     ))}

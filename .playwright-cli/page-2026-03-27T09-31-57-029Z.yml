@@ -1,0 +1,140 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - list [ref=e8]:
+      - listitem [ref=e9]:
+        - button "L LINK CHO II Dasmariñas" [ref=e10]:
+          - generic [ref=e11]:
+            - generic [ref=e12]: L
+            - generic [ref=e13]:
+              - generic [ref=e14]: LINK
+              - generic [ref=e15]: CHO II Dasmariñas
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Navigation
+        - list [ref=e63]:
+          - listitem [ref=e64]:
+            - link "Dashboard" [ref=e65] [cursor=pointer]:
+              - /url: /admin/dashboard
+              - img [ref=e66]
+              - generic [ref=e71]: Dashboard
+          - listitem [ref=e73]:
+            - button "Users" [ref=e74]:
+              - button "Users" [ref=e75]:
+                - img [ref=e76]
+                - generic [ref=e81]: Users
+                - img [ref=e82]
+          - listitem [ref=e84]:
+            - link "BHS Registry" [ref=e85] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e86]
+              - generic [ref=e90]: BHS Registry
+          - listitem [ref=e91]:
+            - link "Audit Logs" [ref=e92] [cursor=pointer]:
+              - /url: /admin/audit-logs
+              - img [ref=e93]
+              - generic [ref=e96]: Audit Logs
+      - generic [ref=e19]:
+        - generic [ref=e20]: Quick Links
+        - list [ref=e97]:
+          - listitem [ref=e98]:
+            - link "Create User" [ref=e99] [cursor=pointer]:
+              - /url: /admin/users/new
+              - img [ref=e100]
+              - generic [ref=e103]: Create User
+          - listitem [ref=e104]:
+            - link "BHS Registry" [ref=e105] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e106]
+              - generic [ref=e110]: BHS Registry
+    - list [ref=e22]:
+      - listitem [ref=e23]:
+        - button "A admin@projectlink.ph system admin" [ref=e111]:
+          - generic [ref=e25]: A
+          - generic [ref=e112]:
+            - generic [ref=e113]: admin@projectlink.ph
+            - generic [ref=e114]: system admin
+          - img [ref=e26]
+    - button "Toggle Sidebar" [ref=e29]
+  - main [ref=e30]:
+    - button "Toggle Sidebar" [ref=e32]:
+      - img
+      - generic [ref=e33]: Toggle Sidebar
+    - main [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - heading "Users" [level=1] [ref=e38]
+            - paragraph [ref=e39]: Manage system user accounts
+          - link "Create User" [ref=e40] [cursor=pointer]:
+            - /url: /admin/users/new
+            - img
+            - text: Create User
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - img [ref=e43]
+            - textbox "Search by name…" [ref=e46]
+          - combobox [ref=e47]:
+            - option "All roles" [selected]
+            - option "System Admin"
+            - option "City Health Officer"
+            - option "PHIS Coordinator"
+            - option "DSO"
+            - option "PHN"
+            - option "Midwife / RHM"
+            - option "BHW"
+          - combobox [ref=e48]:
+            - option "All BHS" [selected]
+            - option "Burol I Health Station"
+            - option "Burol II Health Station"
+            - option "Burol III Health Station"
+            - option "Emmanuel Bergado I Health Station"
+            - option "Emmanuel Bergado II Health Station"
+            - option "Fatima I Health Station"
+            - option "Fatima II Health Station"
+            - option "Fatima III Health Station"
+            - option "Luzviminda I Health Station"
+            - option "Luzviminda II Health Station"
+            - option "San Andres I Health Station"
+            - option "San Andres II Health Station"
+            - option "San Antonio de Padua I Health Station"
+            - option "San Antonio de Padua II Health Station"
+            - option "San Francisco I Health Station"
+            - option "San Francisco II Health Station"
+            - option "San Lorenzo Ruiz I Health Station"
+            - option "San Lorenzo Ruiz II Health Station"
+            - option "San Luis I Health Station"
+            - option "San Luis II Health Station"
+            - option "San Mateo Health Station"
+            - option "San Nicolas I Health Station"
+            - option "San Nicolas II Health Station"
+            - option "San Roque (Sta. Cristina II) Health Station"
+            - option "San Simon (Barangay 7) Health Station"
+            - option "Santa Cristina I Health Station"
+            - option "Santa Cristina II Health Station"
+            - option "Santa Cruz I Health Station"
+            - option "Santa Cruz II Health Station"
+            - option "Santa Fe Health Station"
+            - option "Santa Maria (Barangay 20) Health Station"
+            - option "Victoria Reyes Health Station"
+        - table [ref=e51]:
+          - rowgroup [ref=e52]:
+            - row "Name Username Role BHS Status Actions" [ref=e53]:
+              - columnheader "Name" [ref=e54]
+              - columnheader "Username" [ref=e55]
+              - columnheader "Role" [ref=e56]
+              - columnheader "BHS" [ref=e57]
+              - columnheader "Status" [ref=e58]
+              - columnheader "Actions" [ref=e59]
+          - rowgroup [ref=e60]:
+            - row "System Admin system_admin BHW — Active Edit Deactivate" [ref=e115]:
+              - cell "System Admin" [ref=e116]
+              - cell "system_admin" [ref=e117]
+              - cell "BHW" [ref=e118]:
+                - generic [ref=e119]: BHW
+              - cell "—" [ref=e120]
+              - cell "Active" [ref=e121]:
+                - generic [ref=e122]: Active
+              - cell "Edit Deactivate" [ref=e123]:
+                - generic [ref=e124]:
+                  - button "Edit" [ref=e125]
+                  - button "Deactivate" [ref=e126]

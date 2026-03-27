@@ -1,0 +1,186 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - list [ref=e8]:
+      - listitem [ref=e9]:
+        - button "L LINK CHO II Dasmariñas" [ref=e10]:
+          - generic [ref=e11]:
+            - generic [ref=e12]: L
+            - generic [ref=e13]:
+              - generic [ref=e14]: LINK
+              - generic [ref=e15]: CHO II Dasmariñas
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Navigation
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /admin/dashboard
+              - img [ref=e22]
+              - generic [ref=e27]: Dashboard
+          - listitem [ref=e29]:
+            - button "Users" [ref=e30]:
+              - button "Users" [ref=e31]:
+                - img [ref=e32]
+                - generic [ref=e37]: Users
+                - img [ref=e38]
+          - listitem [ref=e40]:
+            - link "BHS Registry" [ref=e41] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e42]
+              - generic [ref=e46]: BHS Registry
+          - listitem [ref=e47]:
+            - link "Audit Logs" [ref=e48] [cursor=pointer]:
+              - /url: /admin/audit-logs
+              - img [ref=e49]
+              - generic [ref=e52]: Audit Logs
+      - generic [ref=e53]:
+        - generic [ref=e54]: Quick Links
+        - list [ref=e55]:
+          - listitem [ref=e56]:
+            - link "Create User" [ref=e57] [cursor=pointer]:
+              - /url: /admin/users/new
+              - img [ref=e58]
+              - generic [ref=e61]: Create User
+          - listitem [ref=e62]:
+            - link "BHS Registry" [ref=e63] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e64]
+              - generic [ref=e68]: BHS Registry
+    - list [ref=e70]:
+      - listitem [ref=e71]:
+        - button "A admin@projectlink.ph system admin" [ref=e72]:
+          - generic [ref=e73]: A
+          - generic [ref=e74]:
+            - generic [ref=e75]: admin@projectlink.ph
+            - generic [ref=e76]: system admin
+          - img [ref=e77]
+    - button "Toggle Sidebar" [ref=e80]
+  - main [ref=e81]:
+    - button "Toggle Sidebar" [ref=e83]:
+      - img
+      - generic [ref=e84]: Toggle Sidebar
+    - main [ref=e85]:
+      - generic [ref=e86]:
+        - link "Back to Users" [ref=e88] [cursor=pointer]:
+          - /url: /admin/users
+          - img
+          - text: Back to Users
+        - generic [ref=e89]:
+          - heading "Create User" [level=1] [ref=e90]
+          - paragraph [ref=e91]: Add a new user account. They will be required to change their password on first login.
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - generic [ref=e97]:
+                  - text: Full Name
+                  - generic [ref=e98]: "*"
+                - textbox "Full Name *" [ref=e99]:
+                  - /placeholder: Last, First, Middle
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - text: Email
+                  - generic [ref=e102]: "*"
+                - textbox "Email *" [ref=e103]:
+                  - /placeholder: user@cho2.gov.ph
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - text: Username
+                  - generic [ref=e106]: "*"
+                - textbox "Username *" [ref=e107]:
+                  - /placeholder: e.g. s.redona_kld
+              - generic [ref=e108]:
+                - generic [ref=e109]:
+                  - text: Date of Birth
+                  - generic [ref=e110]: "*"
+                - textbox "Date of Birth *" [ref=e111]
+              - generic [ref=e112]:
+                - generic [ref=e113]:
+                  - text: Sex
+                  - generic [ref=e114]: "*"
+                - combobox "Sex *" [ref=e115]:
+                  - option "Select…" [selected]
+                  - option "Male"
+                  - option "Female"
+              - generic [ref=e116]:
+                - generic [ref=e117]: Mobile Number
+                - textbox "Mobile Number" [ref=e118]:
+                  - /placeholder: "+639171234567"
+                - paragraph [ref=e119]: "Format: +639XXXXXXXXX"
+              - generic [ref=e120]:
+                - generic [ref=e121]:
+                  - text: Role
+                  - generic [ref=e122]: "*"
+                - combobox "Role *" [ref=e123]:
+                  - option "Select role…"
+                  - option "System Administrator"
+                  - option "City Health Officer"
+                  - option "PHIS Coordinator"
+                  - option "Disease Surveillance Officer"
+                  - option "Public Health Nurse"
+                  - option "Midwife / RHM"
+                  - option "Barangay Health Worker" [selected]
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - text: BHS Assignment
+                  - generic [ref=e139]: "*"
+                - combobox "BHS Assignment *" [ref=e140]:
+                  - option "Select station…" [selected]
+                  - option "Burol I Health Station"
+                  - option "Burol II Health Station"
+                  - option "Burol III Health Station"
+                  - option "Emmanuel Bergado I Health Station"
+                  - option "Emmanuel Bergado II Health Station"
+                  - option "Fatima I Health Station"
+                  - option "Fatima II Health Station"
+                  - option "Fatima III Health Station"
+                  - option "Luzviminda I Health Station"
+                  - option "Luzviminda II Health Station"
+                  - option "San Andres I Health Station"
+                  - option "San Andres II Health Station"
+                  - option "San Antonio de Padua I Health Station"
+                  - option "San Antonio de Padua II Health Station"
+                  - option "San Francisco I Health Station"
+                  - option "San Francisco II Health Station"
+                  - option "San Lorenzo Ruiz I Health Station"
+                  - option "San Lorenzo Ruiz II Health Station"
+                  - option "San Luis I Health Station"
+                  - option "San Luis II Health Station"
+                  - option "San Mateo Health Station"
+                  - option "San Nicolas I Health Station"
+                  - option "San Nicolas II Health Station"
+                  - option "San Roque (Sta. Cristina II) Health Station"
+                  - option "San Simon (Barangay 7) Health Station"
+                  - option "Santa Cristina I Health Station"
+                  - option "Santa Cristina II Health Station"
+                  - option "Santa Cruz I Health Station"
+                  - option "Santa Cruz II Health Station"
+                  - option "Santa Fe Health Station"
+                  - option "Santa Maria (Barangay 20) Health Station"
+                  - option "Victoria Reyes Health Station"
+              - generic [ref=e141]:
+                - generic [ref=e142]: Purok Assignment
+                - textbox "Purok Assignment" [ref=e143]:
+                  - /placeholder: e.g. Purok 3
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - text: Initial Password
+                  - generic [ref=e126]: "*"
+                - generic [ref=e127]:
+                  - textbox "Initial Password *" [ref=e128]:
+                    - /placeholder: Minimum 12 characters
+                  - button "Show" [ref=e129]
+                - paragraph [ref=e130]: User will be required to change this password on first login.
+            - generic [ref=e131]:
+              - button "Create User" [ref=e132]
+              - button "Cancel" [ref=e133]
+          - generic [ref=e135]:
+            - generic [ref=e145]: Barangay Health Worker
+            - generic [ref=e146]:
+              - paragraph [ref=e147]: Field-level health worker capturing patient visits in the barangay.
+              - generic [ref=e148]:
+                - paragraph [ref=e149]: Access
+                - list [ref=e150]:
+                  - listitem [ref=e151]: Patient registration & ITR
+                  - listitem [ref=e153]: Visit records (maternal, immunization, NCD, TB, nutrition)
+                  - listitem [ref=e155]: Offline data capture & sync

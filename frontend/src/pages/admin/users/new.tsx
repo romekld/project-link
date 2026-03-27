@@ -1,14 +1,24 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useSetPageMeta } from '@/contexts/page-context'
 import { UserForm } from './components/user-form'
 
 export function CreateUserPage() {
+  useSetPageMeta({
+    title: 'Create User',
+    breadcrumbs: [
+      { label: 'Dashboard', href: '/admin/dashboard' },
+      { label: 'Users', href: '/admin/users' },
+      { label: 'Create User' },
+    ],
+  })
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" render={<Link to="/admin/users" />} className="-ml-1">
-          <ChevronLeft className="mr-1 h-4 w-4" />
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/admin/users" />} className="-ml-1">
+          <ChevronLeft data-icon="inline-start" />
           Back to Users
         </Button>
       </div>

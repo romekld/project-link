@@ -22,7 +22,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { UserPlus, Search } from 'lucide-react'
+import { useSetPageMeta } from '@/contexts/page-context'
 import type { UserProfile, UserRole } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -43,8 +51,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   bhw: 'BHW',
 }
 
-const ROLE_OPTIONS: { value: UserRole | ''; label: string }[] = [
-  { value: '', label: 'All roles' },
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'system_admin', label: 'System Admin' },
   { value: 'city_health_officer', label: 'City Health Officer' },
   { value: 'phis_coordinator', label: 'PHIS Coordinator' },
@@ -59,6 +66,14 @@ const ROLE_OPTIONS: { value: UserRole | ''; label: string }[] = [
 // ---------------------------------------------------------------------------
 
 export function UserListPage() {
+  useSetPageMeta({
+    title: 'Users',
+    breadcrumbs: [
+      { label: 'Dashboard', href: '/admin/dashboard' },
+      { label: 'Users' },
+    ],
+  })
+
   const navigate = useNavigate()
   const [users, setUsers] = useState<UserWithStation[]>([])
   const [stations, setStations] = useState<{ id: string; name: string }[]>([])
@@ -100,6 +115,7 @@ export function UserListPage() {
       .then(({ data }) => setStations(data ?? []))
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchUsers() }, [search, roleFilter, stationFilter])
 
   const handleToggleActive = async () => {
@@ -121,16 +137,16 @@ export function UserListPage() {
           <h1 className="font-heading text-2xl font-semibold">Users</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage system user accounts</p>
         </div>
-        <Button render={<Link to="/admin/users/new" />}>
-          <UserPlus className="mr-2 h-4 w-4" />
+        <Button nativeButton={false} render={<Link to="/admin/users/new" />}>
+          <UserPlus className="mr-2 size-4" />
           Create User
         </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative min-w-48 flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by name…"
             value={search}
@@ -139,26 +155,35 @@ export function UserListPage() {
           />
         </div>
 
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as UserRole | '')}
-          className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        <Select
+          value={roleFilter === '' ? 'all' : roleFilter}
+          onValueChange={(v) => setRoleFilter(v === 'all' ? '' : v as UserRole)}
         >
-          {ROLE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+          <SelectTrigger className="min-w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All roles</SelectItem>
+            {ROLE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select
-          value={stationFilter}
-          onChange={(e) => setStationFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        <Select
+          value={stationFilter === '' ? 'all' : stationFilter}
+          onValueChange={(v) => setStationFilter(v === 'all' || v == null ? '' : v)}
         >
-          <option value="">All BHS</option>
-          {stations.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+          <SelectTrigger className="min-w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All BHS</SelectItem>
+            {stations.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
@@ -177,13 +202,13 @@ export function UserListPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   Loading…
                 </TableCell>
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No users found.
                 </TableCell>
               </TableRow>
@@ -191,7 +216,7 @@ export function UserListPage() {
               users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.full_name}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{user.username}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{user.username}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
                       {ROLE_LABELS[user.role] ?? user.role}
@@ -231,7 +256,7 @@ export function UserListPage() {
         </Table>
       </div>
 
-      {/* Deactivate/Activate confirmation dialog */}
+      {/* Deactivate/Activate confirmation */}
       <AlertDialog open={!!confirmUser} onOpenChange={() => setConfirmUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

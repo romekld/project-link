@@ -1,0 +1,4 @@
+[GET] http://127.0.0.1:54321/rest/v1/health_stations?select=id%2Cname&order=name.asc => [200] OK
+[GET] http://127.0.0.1:54321/rest/v1/user_profiles?select=*&id=eq.00000000-0000-0000-0000-000000000001 => [200] OK
+[GET] http://127.0.0.1:54321/rest/v1/health_stations?select=id%2Cname&order=name.asc => [200] OK
+[GET] http://127.0.0.1:54321/rest/v1/user_profiles?select=*&id=eq.00000000-0000-0000-0000-000000000001 => [200] OK

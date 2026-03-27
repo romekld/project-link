@@ -1,0 +1,97 @@
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - list [ref=e8]:
+      - listitem [ref=e9]:
+        - button "L LINK CHO II Dasmariñas" [ref=e10]:
+          - generic [ref=e11]:
+            - generic [ref=e12]: L
+            - generic [ref=e13]:
+              - generic [ref=e14]: LINK
+              - generic [ref=e15]: CHO II Dasmariñas
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Navigation
+        - list [ref=e19]:
+          - listitem [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /admin/dashboard
+              - img [ref=e22]
+              - generic [ref=e27]: Dashboard
+          - listitem [ref=e29]:
+            - button "Users" [ref=e30]:
+              - img [ref=e31]
+              - generic [ref=e36]: Users
+              - img [ref=e37]
+          - listitem [ref=e39]:
+            - link "BHS Registry" [ref=e40] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e41]
+              - generic [ref=e45]: BHS Registry
+          - listitem [ref=e46]:
+            - link "Audit Logs" [ref=e47] [cursor=pointer]:
+              - /url: /admin/audit-logs
+              - img [ref=e48]
+              - generic [ref=e51]: Audit Logs
+      - generic [ref=e52]:
+        - generic [ref=e53]: Quick Links
+        - list [ref=e54]:
+          - listitem [ref=e55]:
+            - link "Create User" [ref=e56] [cursor=pointer]:
+              - /url: /admin/users/new
+              - img [ref=e57]
+              - generic [ref=e60]: Create User
+          - listitem [ref=e61]:
+            - link "BHS Registry" [ref=e62] [cursor=pointer]:
+              - /url: /admin/bhs
+              - img [ref=e63]
+              - generic [ref=e67]: BHS Registry
+    - list [ref=e69]:
+      - listitem [ref=e70]:
+        - button "A admin@projectlink.ph system admin" [ref=e71]:
+          - generic [ref=e72]: A
+          - generic [ref=e73]:
+            - generic [ref=e74]: admin@projectlink.ph
+            - generic [ref=e75]: system admin
+          - img [ref=e76]
+    - button "Toggle Sidebar" [ref=e79]
+  - main [ref=e80]:
+    - button "Toggle Sidebar" [ref=e82]:
+      - img
+      - generic [ref=e83]: Toggle Sidebar
+    - main [ref=e84]:
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - heading "Users" [level=1] [ref=e88]
+            - paragraph [ref=e89]: Manage system user accounts
+          - link "Create User" [ref=e90] [cursor=pointer]:
+            - /url: /admin/users/new
+            - img
+            - text: Create User
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - img [ref=e93]
+            - textbox "Search by name…" [ref=e96]
+          - combobox [ref=e97]:
+            - option "All roles" [selected]
+            - option "System Admin"
+            - option "City Health Officer"
+            - option "PHIS Coordinator"
+            - option "DSO"
+            - option "PHN"
+            - option "Midwife / RHM"
+            - option "BHW"
+          - combobox [ref=e98]:
+            - option "All BHS" [selected]
+        - table [ref=e101]:
+          - rowgroup [ref=e102]:
+            - row "Name Username Role BHS Status Actions" [ref=e103]:
+              - columnheader "Name" [ref=e104]
+              - columnheader "Username" [ref=e105]
+              - columnheader "Role" [ref=e106]
+              - columnheader "BHS" [ref=e107]
+              - columnheader "Status" [ref=e108]
+              - columnheader "Actions" [ref=e109]
+          - rowgroup [ref=e110]:
+            - row "Loading…" [ref=e111]:
+              - cell "Loading…" [ref=e112]
