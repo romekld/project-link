@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { env } from '@/config/env'
 import type { UserRole } from '@/types'
 import { ChangePasswordDialog } from './change-password-dialog'
 
@@ -15,6 +16,8 @@ interface AuthContextValue {
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 
+const DEV_ROLE = env.devRole
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
@@ -22,6 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [passwordDialogDismissed, setPasswordDialogDismissed] = useState(false)
 
   useEffect(() => {
+    if (env.disableAuth) {
+      setLoading(false)
+      return
+    }
+
     // Restore session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -38,12 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const role = (session?.user?.app_metadata?.role as UserRole) ?? null
-  const healthStationId = (session?.user?.app_metadata?.health_station_id as string) ?? null
-  const mustChangePassword = session?.user?.app_metadata?.must_change_password === true
+  const role = env.disableAuth ? DEV_ROLE : (session?.user?.app_metadata?.role as UserRole) ?? null
+  const healthStationId = env.disableAuth ? null : (session?.user?.app_metadata?.health_station_id as string) ?? null
+  const mustChangePassword = env.disableAuth ? false : session?.user?.app_metadata?.must_change_password === true
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    if (!env.disableAuth) await supabase.auth.signOut()
   }
 
   const showPasswordDialog = session !== null && mustChangePassword && !passwordDialogDismissed

@@ -33,7 +33,9 @@ export function LoginPage() {
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) {
-        setError('Invalid email or password. Please try again.')
+        const details = signInError.message || 'Unexpected authentication error'
+        setError(`Sign in failed: ${details}`)
+        console.error('Supabase sign-in error:', signInError)
         return
       }
 

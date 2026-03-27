@@ -8,6 +8,7 @@ import {
 import { Providers } from '@/app/providers'
 import { AppShell } from '@/components/layout/app-shell'
 import { supabase } from '@/lib/supabase'
+import { env } from '@/config/env'
 import type { UserRole } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -24,15 +25,19 @@ const ROLE_ROOTS: Record<UserRole, string> = {
   system_admin: '/admin/dashboard',
 }
 
+const DEV_ROLE = env.devRole
+
 async function requireAuth() {
+  if (env.disableAuth) return null
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw redirect({ to: '/login' })
   return session
 }
 
 async function requireRole(allowedPrefixes: string[]) {
+  if (env.disableAuth) return { session: null, role: DEV_ROLE, root: ROLE_ROOTS[DEV_ROLE] }
   const session = await requireAuth()
-  const role = session.user?.app_metadata?.role as UserRole | undefined
+  const role = session!.user?.app_metadata?.role as UserRole | undefined
   if (!role) throw redirect({ to: '/login' })
 
   const root = role ? ROLE_ROOTS[role] : null
@@ -65,6 +70,7 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   beforeLoad: async () => {
+    if (env.disableAuth) throw redirect({ to: ROLE_ROOTS[DEV_ROLE] })
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       const role = session.user?.app_metadata?.role as UserRole | undefined
@@ -82,6 +88,7 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   beforeLoad: async () => {
+    if (env.disableAuth) throw redirect({ to: ROLE_ROOTS[DEV_ROLE] })
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw redirect({ to: '/login' })
     const role = session.user?.app_metadata?.role as UserRole | undefined
