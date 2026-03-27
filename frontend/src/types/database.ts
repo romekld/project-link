@@ -10,24 +10,34 @@ export type RecordStatus =
   | 'RETURNED'
 
 export type UserRole =
-  | 'bhw'
-  | 'midwife_rhm'
-  | 'nurse_phn'
+  | 'system_admin'
+  | 'city_health_officer'
   | 'phis_coordinator'
   | 'dso'
-  | 'admin'
+  | 'nurse_phn'
+  | 'midwife_rhm'
+  | 'bhw'
 
 export interface HealthStation {
   id: string
-  barangay_name: string
-  midwife_id: string | null
+  barangay_id: string | null
+  name: string
+  address: string | null
   created_at: string
 }
 
 export interface UserProfile {
   id: string
-  role: UserRole
   full_name: string
+  username: string
+  date_of_birth: string
+  sex: 'M' | 'F'
+  mobile_number: string | null
+  role: UserRole
   health_station_id: string | null
+  purok_assignment: string | null
+  is_active: boolean
+  must_change_password: boolean
   created_at: string
+  updated_at: string | null
 }

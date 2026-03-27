@@ -1,13 +1,294 @@
-// Route definitions for Project LINK.
-// TODO: npm install @tanstack/react-router, then define the type-safe route tree here.
-//
-// Planned role-based route tree:
-//   /login                — public, redirects to role dashboard after auth
-//   /bhw/*                — BHW: patient visits, offline queue
-//   /midwife/*            — Midwife/RHM: TCL management, record validation
-//   /phn/*                — PHN: monthly consolidation, MCT
-//   /phis/*               — PHIS Coordinator: DQC, M1/M2 report export
-//   /dso/*                — DSO: disease surveillance, real-time alerts
-//   /admin/*              — Admin: user management, BHS settings
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  redirect,
+  Outlet,
+} from '@tanstack/react-router'
+import { Providers } from '@/app/providers'
+import { AppShell } from '@/components/layout/app-shell'
+import { supabase } from '@/lib/supabase'
+import type { UserRole } from '@/types'
 
-export {}
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const ROLE_ROOTS: Record<UserRole, string> = {
+  bhw: '/bhw/dashboard',
+  midwife_rhm: '/midwife/dashboard',
+  nurse_phn: '/phn/dashboard',
+  phis_coordinator: '/phis/dashboard',
+  dso: '/dso/dashboard',
+  city_health_officer: '/cho/dashboard',
+  system_admin: '/admin/dashboard',
+}
+
+async function requireAuth() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw redirect({ to: '/login' })
+  return session
+}
+
+async function requireRole(allowedPrefixes: string[]) {
+  const session = await requireAuth()
+  const role = session.user?.app_metadata?.role as UserRole | undefined
+  if (!role) throw redirect({ to: '/login' })
+
+  const root = role ? ROLE_ROOTS[role] : null
+  if (!root) throw redirect({ to: '/login' })
+
+  // Check if the current role is allowed for this route group
+  const isAllowed = allowedPrefixes.some((prefix) => root.startsWith(prefix))
+  if (!isAllowed) throw redirect({ to: root })
+
+  return { session, role, root }
+}
+
+// ---------------------------------------------------------------------------
+// Root route — wraps everything in <Providers>
+// ---------------------------------------------------------------------------
+const rootRoute = createRootRoute({
+  component: () => (
+    <Providers>
+      <Outlet />
+    </Providers>
+  ),
+})
+
+// ---------------------------------------------------------------------------
+// Public routes
+// ---------------------------------------------------------------------------
+import { LoginPage } from '@/pages/auth/login'
+
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  beforeLoad: async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      const role = session.user?.app_metadata?.role as UserRole | undefined
+      const root = role ? ROLE_ROOTS[role] : null
+      if (root) throw redirect({ to: root })
+    }
+  },
+  component: LoginPage,
+})
+
+// ---------------------------------------------------------------------------
+// Redirect root → login
+// ---------------------------------------------------------------------------
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  beforeLoad: async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw redirect({ to: '/login' })
+    const role = session.user?.app_metadata?.role as UserRole | undefined
+    const root = role ? ROLE_ROOTS[role] : null
+    throw redirect({ to: root ?? '/login' })
+  },
+  component: () => null,
+})
+
+// ---------------------------------------------------------------------------
+// BHW routes
+// ---------------------------------------------------------------------------
+import { BHWDashboardPage } from '@/pages/bhw/dashboard'
+import { PlaceholderPage } from '@/pages/placeholder'
+
+const bhwLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/bhw',
+  beforeLoad: () => requireRole(['/bhw']),
+  component: AppShell,
+})
+const bhwDashboardRoute = createRoute({
+  getParentRoute: () => bhwLayoutRoute,
+  path: '/dashboard',
+  component: BHWDashboardPage,
+})
+const bhwCatchAllRoute = createRoute({
+  getParentRoute: () => bhwLayoutRoute,
+  path: '/$',
+  component: PlaceholderPage,
+})
+
+// ---------------------------------------------------------------------------
+// Midwife routes
+// ---------------------------------------------------------------------------
+import { MidwifeDashboardPage } from '@/pages/midwife/dashboard'
+
+const midwifeLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/midwife',
+  beforeLoad: () => requireRole(['/midwife']),
+  component: AppShell,
+})
+const midwifeDashboardRoute = createRoute({
+  getParentRoute: () => midwifeLayoutRoute,
+  path: '/dashboard',
+  component: MidwifeDashboardPage,
+})
+const midwifeCatchAllRoute = createRoute({
+  getParentRoute: () => midwifeLayoutRoute,
+  path: '/$',
+  component: PlaceholderPage,
+})
+
+// ---------------------------------------------------------------------------
+// PHN routes
+// ---------------------------------------------------------------------------
+import { PHNDashboardPage } from '@/pages/phn/dashboard'
+
+const phnLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/phn',
+  beforeLoad: () => requireRole(['/phn']),
+  component: AppShell,
+})
+const phnDashboardRoute = createRoute({
+  getParentRoute: () => phnLayoutRoute,
+  path: '/dashboard',
+  component: PHNDashboardPage,
+})
+const phnCatchAllRoute = createRoute({
+  getParentRoute: () => phnLayoutRoute,
+  path: '/$',
+  component: PlaceholderPage,
+})
+
+// ---------------------------------------------------------------------------
+// PHIS routes
+// ---------------------------------------------------------------------------
+import { PHISDashboardPage } from '@/pages/phis/dashboard'
+
+const phisLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/phis',
+  beforeLoad: () => requireRole(['/phis']),
+  component: AppShell,
+})
+const phisDashboardRoute = createRoute({
+  getParentRoute: () => phisLayoutRoute,
+  path: '/dashboard',
+  component: PHISDashboardPage,
+})
+const phisCatchAllRoute = createRoute({
+  getParentRoute: () => phisLayoutRoute,
+  path: '/$',
+  component: PlaceholderPage,
+})
+
+// ---------------------------------------------------------------------------
+// DSO routes
+// ---------------------------------------------------------------------------
+import { DSODashboardPage } from '@/pages/dso/dashboard'
+
+const dsoLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dso',
+  beforeLoad: () => requireRole(['/dso']),
+  component: AppShell,
+})
+const dsoDashboardRoute = createRoute({
+  getParentRoute: () => dsoLayoutRoute,
+  path: '/dashboard',
+  component: DSODashboardPage,
+})
+const dsoCatchAllRoute = createRoute({
+  getParentRoute: () => dsoLayoutRoute,
+  path: '/$',
+  component: PlaceholderPage,
+})
+
+// ---------------------------------------------------------------------------
+// CHO routes
+// ---------------------------------------------------------------------------
+import { CHODashboardPage } from '@/pages/cho/dashboard'
+
+const choLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/cho',
+  beforeLoad: () => requireRole(['/cho']),
+  component: AppShell,
+})
+const choDashboardRoute = createRoute({
+  getParentRoute: () => choLayoutRoute,
+  path: '/dashboard',
+  component: CHODashboardPage,
+})
+const choCatchAllRoute = createRoute({
+  getParentRoute: () => choLayoutRoute,
+  path: '/$',
+  component: PlaceholderPage,
+})
+
+// ---------------------------------------------------------------------------
+// Admin routes
+// ---------------------------------------------------------------------------
+import { AdminDashboardPage } from '@/pages/admin/dashboard'
+import { UserListPage } from '@/pages/admin/users/index'
+import { CreateUserPage } from '@/pages/admin/users/new'
+import { EditUserPage } from '@/pages/admin/users/$id.edit'
+
+const adminLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
+  beforeLoad: () => requireRole(['/admin']),
+  component: AppShell,
+})
+const adminDashboardRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/dashboard',
+  component: AdminDashboardPage,
+})
+const adminUsersRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/users',
+  component: UserListPage,
+})
+const adminUsersNewRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/users/new',
+  component: CreateUserPage,
+})
+const adminUsersEditRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/users/$id/edit',
+  component: EditUserPage,
+})
+const adminCatchAllRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/$',
+  component: PlaceholderPage,
+})
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  loginRoute,
+  bhwLayoutRoute.addChildren([bhwDashboardRoute, bhwCatchAllRoute]),
+  midwifeLayoutRoute.addChildren([midwifeDashboardRoute, midwifeCatchAllRoute]),
+  phnLayoutRoute.addChildren([phnDashboardRoute, phnCatchAllRoute]),
+  phisLayoutRoute.addChildren([phisDashboardRoute, phisCatchAllRoute]),
+  dsoLayoutRoute.addChildren([dsoDashboardRoute, dsoCatchAllRoute]),
+  choLayoutRoute.addChildren([choDashboardRoute, choCatchAllRoute]),
+  adminLayoutRoute.addChildren([
+    adminDashboardRoute,
+    adminUsersRoute,
+    adminUsersNewRoute,
+    adminUsersEditRoute,
+    adminCatchAllRoute,
+  ]),
+])
+
+export const router = createRouter({ routeTree })
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+  }
+}

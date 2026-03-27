@@ -69,19 +69,19 @@ Project LINK is a multi-tier health information system serving 32 Barangay Healt
 | Real-time | Supabase JS client — Realtime WebSocket subscriptions |
 | Auth | Supabase Auth JS — JWT stored in memory/cookie; role claim read from JWT |
 | State | React context + hooks; no global state lib required for Phase 1–2 |
-| Routing | React Router v6 — role-guarded route groups |
+| Routing | TanStack Router v1 — `beforeLoad` role guards; layout routes wrap each role group in `AppShell` |
 
 **Route groups by role:**
 
 ```
-/                   → public landing / login
-/admin/             → system_admin only
-/bhw/               → bhw role
-/midwife/           → midwife_rhm role
-/nurse/             → nurse_phn role
-/dso/               → dso role
-/phis/              → phis_coordinator role
-/cho/               → city_health_officer role
+/login              → public (redirects to dashboard if already authed)
+/admin/*            → system_admin only
+/bhw/*              → bhw role
+/midwife/*          → midwife_rhm role
+/phn/*              → nurse_phn role
+/dso/*              → dso role
+/phis/*             → phis_coordinator role
+/cho/*              → city_health_officer role
 ```
 
 ### 2.2 Backend API (DigitalOcean App Platform)
@@ -323,39 +323,41 @@ validated_by  UUID REFERENCES user_profiles(id)
 frontend/
 ├── public/             # PWA manifest, icons, service worker (generated)
 ├── src/
-│   ├── app/            # App shell
-│   │   ├── App.tsx        # Root component — mounts Providers + AppRouter
-│   │   ├── providers.tsx  # Supabase auth, React Query, theme providers
-│   │   └── router.tsx     # Role-guarded route definitions
-│   ├── features/       # Feature modules (one dir per domain)
-│   │   ├── auth/           # Login, session, ProtectedRoute guard
-│   │   ├── dashboard/      # Per-role dashboard shells
-│   │   ├── patients/       # Unified Patient Registry, ITR
-│   │   ├── visits/         # BHW offline entry (5 service types)
-│   │   ├── validation/     # Midwife validation queue
-│   │   ├── reports/        # ST → MCT → M1/M2 pipeline UI
-│   │   ├── surveillance/   # PIDSR entry, Category I alerts, DSO CIF
-│   │   ├── sync/           # Offline/online indicator, Dexie queue
-│   │   ├── health-stations/# BHS registry (admin)
-│   │   └── settings/       # User profile, preferences
+│   ├── app/            # Router + providers
+│   │   ├── providers.tsx  # QueryClientProvider + AuthProvider
+│   │   └── router.tsx     # TanStack Router — all routes + beforeLoad guards
+│   ├── features/       # Cross-cutting feature modules
+│   │   └── auth/           # AuthProvider, useAuth, ChangePasswordDialog
+│   ├── pages/          # Route-level page components (mirrors route tree)
+│   │   ├── auth/           # login.tsx
+│   │   ├── admin/          # users/index.tsx, users/new.tsx, users/$id.edit.tsx
+│   │   ├── bhw/            # dashboard.tsx (+ future pages)
+│   │   ├── midwife/        # dashboard.tsx
+│   │   ├── phn/            # dashboard.tsx
+│   │   ├── phis/           # dashboard.tsx
+│   │   ├── dso/            # dashboard.tsx
+│   │   └── cho/            # dashboard.tsx
 │   ├── components/
-│   │   ├── ui/         # shadcn/ui primitives (auto-generated, never hand-written)
-│   │   ├── layout/     # AppShell, Sidebar, Navbar, PageHeader
-│   │   └── clinical/   # StatusBadge, RiskFlag, SyncIndicator, ConfirmDialog
-│   ├── hooks/          # Global shared hooks (useAuth, useOnlineStatus, useRealtime)
+│   │   ├── ui/         # shadcn/ui primitives (installed via npx shadcn add)
+│   │   ├── layout/     # AppShell, AppSidebar, NavMain, NavQuickLinks, NavUser, AppBranding, nav-config
+│   │   └── clinical/   # (Phase 2+) StatusBadge, RiskFlag, SyncIndicator
+│   ├── hooks/          # Global shared hooks (use-mobile.ts; Phase 2+ useOnlineStatus, useRealtime)
 │   ├── lib/
 │   │   ├── supabase.ts    # Supabase JS client singleton
-│   │   ├── dexie.ts       # Dexie.js IndexedDB schema + offline store
+│   │   ├── dexie.ts       # (Phase 2) Dexie.js IndexedDB schema + offline store
 │   │   └── utils.ts       # cn() and shared utilities
-│   └── types/          # Global TypeScript types
-│       ├── api.ts         # ApiResponse<T> envelope
-│       ├── roles.ts       # UserRole type + route map
-│       └── records.ts     # RecordStatus, SummaryTableStatus, DiseaseCategory
+│   ├── types/
+│   │   └── database.ts    # UserRole, UserProfile, RecordStatus
+│   └── config/
+│       └── env.ts         # Type-safe VITE_ env variable accessor
+├── App.tsx             # Mounts <RouterProvider>
 ├── vite.config.ts
 └── components.json     # shadcn config (base-vega, mist, @base-ui/react)
 ```
 
-**Feature module anatomy** — every feature follows the same internal shape:
+**Key pattern — `@base-ui/react` render prop:** shadcn base-vega uses `@base-ui/react` primitives which expose a `render` prop for polymorphic rendering instead of Radix UI's `asChild`. Use `<Button render={<Link to="..." />}>` throughout.
+
+**Future feature module anatomy** — Phase 2+ domain features will follow:
 
 ```
 features/{name}/
@@ -386,12 +388,29 @@ Background sync trigger (Workbox)
 
 ```
 User visits app
+  └─► AuthProvider: getSession() restores existing session
+  └─► If no session → TanStack Router beforeLoad → redirect /login
+
+User logs in (login.tsx)
   └─► Supabase Auth: signInWithPassword
   └─► JWT returned with custom claims: { role, health_station_id }
-  └─► Stored in Supabase session (memory + httpOnly cookie)
-  └─► React Router: ProtectedRoute reads role from JWT claims
-  └─► Unauthorized routes → redirect to /login
+  └─► AuthProvider: onAuthStateChange fires → updates context
+  └─► Login page reads role from session.user.app_metadata.role
+  └─► Redirects to role dashboard root (/bhw/dashboard, /admin/dashboard, etc.)
+
+Role guard (every protected route)
+  └─► beforeLoad calls requireRole(['/prefix'])
+  └─► Reads role from session JWT app_metadata
+  └─► Wrong-role access → redirect to own dashboard root
+
+must_change_password flow
+  └─► AuthProvider detects must_change_password = true in user_profiles
+  └─► Renders <ChangePasswordDialog> overlay on top of dashboard
+  └─► Skip: dialog dismissed for current session only (reappears on next login)
+  └─► Save: supabase.auth.updateUser() + clears must_change_password flag
 ```
+
+**User creation** — `create-user` Supabase Edge Function (Deno). Accepts `system_admin` JWT only; uses service role key to `auth.admin.createUser()`; inserts `user_profiles` row; sets `must_change_password = true`. Rolls back auth user if profile insert fails.
 
 ---
 
@@ -401,7 +420,7 @@ User visits app
 
 | Layer | Mechanism | What it enforces |
 | :--- | :--- | :--- |
-| **Frontend** | React Router `ProtectedRoute` | Route visibility by role (UX convenience; not a security boundary) |
+| **Frontend** | TanStack Router `beforeLoad` guards (`requireAuth`, `requireRole`) | Route visibility by role (UX convenience; not a security boundary) |
 | **Database** | Supabase RLS policies | Data access by `health_station_id` + `role` from JWT |
 
 The RLS layer is the authoritative security boundary. Frontend guards are UX, not security.
@@ -418,7 +437,7 @@ The RLS layer is the authoritative security boundary. Frontend guards are UX, no
 }
 ```
 
-The `role` and `health_station_id` claims are injected via a Supabase Auth hook (database function triggered on login) that reads from `user_profiles`.
+The `role` and `health_station_id` claims are injected via `sync_role_to_jwt()` — a PostgreSQL trigger on `user_profiles` that runs on INSERT/UPDATE and writes into `auth.users.raw_app_meta_data`. This fires both at user creation and whenever an admin edits a user's role or BHS assignment.
 
 ---
 
