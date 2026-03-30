@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   flexRender,
@@ -35,6 +36,7 @@ import { ArrowUpDown, Columns3, Search } from 'lucide-react'
 interface IntelligenceDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  clearSelectionSignal?: number
   filterColumn?: string
   filterPlaceholder?: string
   toolbar?: ReactNode
@@ -46,6 +48,7 @@ interface IntelligenceDataTableProps<TData, TValue> {
 export function IntelligenceDataTable<TData, TValue>({
   columns,
   data,
+  clearSelectionSignal,
   filterColumn,
   filterPlaceholder = 'Search',
   toolbar,
@@ -80,6 +83,10 @@ export function IntelligenceDataTable<TData, TValue>({
   useEffect(() => {
     onSelectionChange?.(table.getSelectedRowModel().rows.map((row) => row.original))
   }, [onSelectionChange, rowSelection, table])
+
+  useEffect(() => {
+    setRowSelection({})
+  }, [clearSelectionSignal])
 
   return (
     <div className="flex flex-col gap-4">

@@ -206,7 +206,7 @@ function PinMapSurface({
 }
 
 export function HealthStationPinsPage({ roleScope }: HealthStationPinsPageProps) {
-  const [pins, setPins] = useState<HealthStationPinRecord[]>([])
+  const [pinOverrides, setPinOverrides] = useState<Record<string, Partial<HealthStationPinRecord>>>({})
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null)
   const [placementMode, setPlacementMode] = useState(false)
   const [mapProvider, setMapProvider] = useState<'carto' | 'maptiler'>(() => {
@@ -219,19 +219,29 @@ export function HealthStationPinsPage({ roleScope }: HealthStationPinsPageProps)
     queryFn: loadIntelligenceFixtures,
   })
 
-  useEffect(() => {
-    if (!fixturesQuery.data) return
-    const nextPins = buildHealthStationPins(fixturesQuery.data)
-    setPins(nextPins)
-    setSelectedPinId((current) => current ?? nextPins[0]?.id ?? null)
-  }, [fixturesQuery.data])
-
   useSetPageMeta({
     title: 'Health Station Pins',
     breadcrumbs: [{ label: roleScope === 'cho' ? 'Intelligence' : 'BHS Registry' }, { label: 'Health Station Pins' }],
   })
 
-  const selectedPin = pins.find((pin) => pin.id === selectedPinId) ?? null
+  const pins = useMemo(
+    () => {
+      const basePins = fixturesQuery.data ? buildHealthStationPins(fixturesQuery.data) : []
+      return basePins.map((pin) => {
+        const override = pinOverrides[pin.id]
+        if (!override) return pin
+
+        return {
+          ...pin,
+          ...override,
+          draftStatus: 'updated' as const,
+        }
+      })
+    },
+    [fixturesQuery.data, pinOverrides],
+  )
+  const effectiveSelectedPinId = selectedPinId ?? pins[0]?.id ?? null
+  const selectedPin = pins.find((pin) => pin.id === effectiveSelectedPinId) ?? null
   const mapStyles = useMemo(
     () => getMapStyles(mapProvider, env.maptilerApiKey),
     [mapProvider],
@@ -277,19 +287,16 @@ export function HealthStationPinsPage({ roleScope }: HealthStationPinsPageProps)
   }
 
   function updateSelectedPin(patch: Partial<HealthStationPinRecord>) {
-    if (!selectedPinId) return
+    if (!effectiveSelectedPinId) return
 
-    setPins((current) =>
-      current.map((pin) =>
-        pin.id === selectedPinId
-          ? {
-              ...pin,
-              ...patch,
-              draftStatus: 'updated',
-            }
-          : pin,
-      ),
-    )
+    setPinOverrides((current) => ({
+      ...current,
+      [effectiveSelectedPinId]: {
+        ...current[effectiveSelectedPinId],
+        ...patch,
+        draftStatus: 'updated',
+      },
+    }))
   }
 
   if (fixturesQuery.isLoading) {
@@ -357,7 +364,7 @@ export function HealthStationPinsPage({ roleScope }: HealthStationPinsPageProps)
                   }}
                 />
                 {pins.map((pin) => {
-                  const isSelected = pin.id === selectedPinId
+                  const isSelected = pin.id === effectiveSelectedPinId
                   return (
                     <MapMarker
                       key={pin.id}
