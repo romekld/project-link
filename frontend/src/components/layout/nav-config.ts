@@ -156,6 +156,7 @@ export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
       title: 'BHS Registry', url: '/admin/bhs/coverage', icon: Hospital,
       children: [
         { title: 'Coverage Planner', url: '/admin/bhs/coverage' },
+        { title: 'City Barangay Registry', url: '/admin/bhs/city-barangays' },
         { title: 'Health Station Pins', url: '/admin/bhs/pins' },
       ],
     },

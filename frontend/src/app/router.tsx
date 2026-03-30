@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { env } from '@/config/env'
 import {
   CoveragePlannerPage,
+  CityBarangayRegistryPage,
   HealthStationPinsPage,
   IntelligenceMapPage,
 } from '@/features/intelligence'
@@ -476,6 +477,11 @@ const adminBhsCoverageRoute = createRoute({
   path: '/bhs/coverage',
   component: () => <CoveragePlannerPage roleScope="admin" />,
 })
+const adminCityBarangaysRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/bhs/city-barangays',
+  component: () => <CityBarangayRegistryPage roleScope="admin" />,
+})
 const adminBhsPinsRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: '/bhs/pins',
@@ -546,6 +552,7 @@ const routeTree = rootRoute.addChildren([
     adminUsersEditRoute,
     adminBhsIndexRoute,
     adminBhsCoverageRoute,
+    adminCityBarangaysRoute,
     adminBhsPinsRoute,
     adminCatchAllRoute,
   ]),

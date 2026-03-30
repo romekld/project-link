@@ -87,4 +87,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated map style resolution to support provider-based style selection and safe fallback behavior when `VITE_MAPTILER_API_KEY` is unavailable.
 - Frontend build re-validated after refinements with `npm run build`.
 
+**GIS Barangay Management Foundation (backend-first, 2026-03-30)**
+- Added migration `013_gis_barangay_management.sql` to extend `city_barangays` and `barangays` for GIS lifecycle management, including source metadata, deactivate/reactivate support, audit-friendly change fields, and a map-ready `barangay_coverage_map_view`.
+- Added support tables for geometry history and bulk import workflows: `city_barangay_geometry_versions`, `city_barangay_import_jobs`, and `city_barangay_import_items`.
+- Added Postgres helper/RPC functions for GeoJSON normalization, city barangay upsert, operational coverage apply, import staging, and atomic import commit with duplicate-review enforcement.
+- Added RLS policies so only `system_admin` can mutate `city_barangays`, while `system_admin` and `city_health_officer` can manage operational `barangays`.
+- Added new Edge Functions under `supabase/functions/`:
+  `city-barangay-upsert`,
+  `barangay-coverage-apply`,
+  `city-barangay-import-validate`,
+  `city-barangay-import-commit`,
+  plus shared response/auth/GeoJSON helpers in `supabase/functions/_shared/`.
+
+**GIS backend validation notes (2026-03-30)**
+- Local `supabase db reset --local` completed successfully with migration `013_gis_barangay_management.sql` applied on top of the seeded Phase 1 schema.
+- Local data sanity checks confirmed:
+  `75` city barangays,
+  `32` operational barangays,
+  and `75` rows exposed by `barangay_coverage_map_view` with `32` in scope.
+- Transactional verification confirmed deactivate then re-add preserves the same `barangays.id`, matching the intended reactivate flow.
+- Transactional import verification confirmed:
+  new PSGC codes stage as `create`,
+  existing PSGC codes stage as `review_required`,
+  and import commit is blocked until duplicate decisions are explicitly resolved.
 

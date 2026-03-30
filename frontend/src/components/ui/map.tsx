@@ -946,12 +946,8 @@ function MapControls({
           <ControlButton
             onClick={handleProviderToggle}
             label={`Switch to ${mapProvider === 'carto' ? 'MapTiler' : 'Carto'}`}
-            className="min-w-24 justify-start"
           >
             <Layers className="size-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.18em]">
-              {mapProvider === 'carto' ? 'Carto' : 'MapTiler'}
-            </span>
           </ControlButton>
         </ControlGroup>
       )}

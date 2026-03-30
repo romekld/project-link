@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, MultiPolygon, Point } from 'geojson'
+import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson'
 
 export type MapRoleView = 'phn' | 'dso' | 'cho'
 
@@ -62,9 +62,12 @@ export interface BarangaySnapshot {
 export type CoveragePendingAction = 'add' | 'remove'
 
 export interface CoveragePlannerRecord {
+  barangayId: string
+  coverageBarangayId?: string | null
   barangayCode: string
   barangayName: string
   bhsName: string
+  geometry: MultiPolygon | Polygon
   inCho2Scope: boolean
   totalCases: number
   activeAlerts: number
@@ -72,6 +75,15 @@ export interface CoveragePlannerRecord {
   householdsCovered: number
   pendingAction: CoveragePendingAction | null
   changeReason: string
+}
+
+export interface CoverageMapViewRow {
+  barangay_id: string
+  coverage_barangay_id: string | null
+  barangay_code: string
+  barangay_name: string
+  geometry: MultiPolygon | Polygon | string | null
+  in_cho_scope: boolean
 }
 
 export type HealthStationPinStatus = 'saved' | 'updated'
@@ -85,6 +97,67 @@ export interface HealthStationPinRecord {
   longitude: number
   isPrimary: boolean
   draftStatus: HealthStationPinStatus
+}
+
+export interface CityBarangayRegistryRecord {
+  barangayId: string
+  coverageBarangayId: string | null
+  barangayCode: string
+  barangayName: string
+  city: string
+  geometry: MultiPolygon | Polygon
+  inCho2Scope: boolean
+  sourceFid: number | null
+  sourceDate: string | null
+  sourceValidOn: string | null
+  sourceValidTo: string | null
+  sourceAreaSqkm: number | null
+  createdAt: string | null
+  createdBy: string | null
+  updatedAt: string | null
+  updatedBy: string | null
+}
+
+export interface CityBarangayGeometryVersion {
+  id: string
+  city_barangay_id: string
+  version_no: number
+  change_type: 'create' | 'overwrite' | 'manual_edit'
+  reason: string
+  changed_by: string | null
+  changed_at: string
+}
+
+export interface CityBarangayImportJob {
+  id: string
+  filename: string
+  status: 'uploaded' | 'validated' | 'committed' | 'failed' | 'cancelled'
+  total_features: number
+  valid_features: number
+  error_features: number
+  duplicate_features: number
+  payload_size_bytes: number | null
+  created_at: string
+  validated_at: string | null
+  committed_at: string | null
+}
+
+export interface CityBarangayImportItem {
+  id: string
+  job_id: string
+  feature_index: number
+  pcode: string | null
+  name: string | null
+  action: 'create' | 'skip' | 'overwrite' | 'invalid' | 'review_required'
+  validation_errors: string[]
+  source_payload: {
+    type?: string
+    properties?: Record<string, unknown>
+    geometry?: MultiPolygon | Polygon | Record<string, unknown>
+  }
+  selected_overwrite: boolean
+  existing_city_barangay_id: string | null
+  processed_at: string | null
 }
 
 export interface IntelligenceFixtures {
