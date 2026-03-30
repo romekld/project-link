@@ -35,7 +35,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    const callerRole = caller.app_metadata?.role
+    const callerRole =
+      caller.app_metadata?.app_role ??
+      caller.app_metadata?.role
+
     if (callerRole !== 'system_admin') {
       return new Response(
         JSON.stringify({ data: null, error: 'Forbidden: system_admin role required' }),
@@ -117,7 +120,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ data: profile, error: null }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
+  } catch {
     return new Response(
       JSON.stringify({ data: null, error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
