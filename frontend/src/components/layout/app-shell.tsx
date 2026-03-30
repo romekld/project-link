@@ -24,7 +24,7 @@ export function AppShell() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-4 supports-backdrop-filter:backdrop-blur">
           <SidebarTrigger className="-ml-1" />
 
           {breadcrumbs.length > 0 && (
@@ -32,10 +32,9 @@ export function AppShell() {
               <Separator orientation="vertical" className="h-4" />
               <Breadcrumb>
                 <BreadcrumbList>
-                  {breadcrumbs.map((crumb, i) => (
-                    <BreadcrumbItem key={crumb.label}>
-                      {i < breadcrumbs.length - 1 ? (
-                        <>
+                  {breadcrumbs.flatMap((crumb, i) => (
+                    i < breadcrumbs.length - 1 ? [
+                        <BreadcrumbItem key={`${crumb.label}-item`}>
                           {crumb.href ? (
                             <BreadcrumbLink render={<Link to={crumb.href} />}>
                               {crumb.label}
@@ -43,12 +42,13 @@ export function AppShell() {
                           ) : (
                             <BreadcrumbLink>{crumb.label}</BreadcrumbLink>
                           )}
-                          <BreadcrumbSeparator />
-                        </>
-                      ) : (
+                        </BreadcrumbItem>,
+                        <BreadcrumbSeparator key={`${crumb.label}-separator`} />
+                      ] : (
+                      <BreadcrumbItem key={crumb.label}>
                         <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                      )}
-                    </BreadcrumbItem>
+                      </BreadcrumbItem>
+                    )
                   ))}
                 </BreadcrumbList>
               </Breadcrumb>
@@ -68,7 +68,7 @@ export function AppShell() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </main>
       </SidebarInset>
