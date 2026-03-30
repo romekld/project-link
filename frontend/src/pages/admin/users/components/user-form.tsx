@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { supabase } from '@/lib/supabase'
+import { env } from '@/config/env'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -177,7 +178,28 @@ export function UserForm({ mode, userId }: UserFormProps) {
     setLoading(true)
     try {
       if (mode === 'create') {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) {
+          setError('Unable to verify your session. Please sign in again.')
+          return
+        }
+
+        // Ensure we have a valid access token before calling JWT-protected Edge Functions.
+        let accessToken = session?.access_token
+        if (!accessToken && session?.refresh_token) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+          if (refreshError || !refreshData.session?.access_token) {
+            setError('Your session has expired. Please sign in again and retry.')
+            return
+          }
+          accessToken = refreshData.session.access_token
+        }
+
+        if (!accessToken) {
+          setError('Your session has expired. Please sign in again and retry.')
+          return
+        }
+
         const { data, error: fnError } = await supabase.functions.invoke('create-user', {
           body: {
             email,
@@ -191,7 +213,10 @@ export function UserForm({ mode, userId }: UserFormProps) {
             health_station_id: healthStationId || null,
             purok_assignment: purokAssignment || null,
           },
-          headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: env.supabaseAnonKey,
+          },
         })
 
         if (fnError || data?.error) {
