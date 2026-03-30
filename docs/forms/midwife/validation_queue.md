@@ -1,40 +1,41 @@
-# Validation Queue — Workflow / Admin
+# Validation Queue — Admin / Workflow
 
 **Role:** Midwife (RHM)
-**Purpose:** Review, approve, or return BHW-submitted ITR encounter records before they can appear in any TCL, Summary Table, or report. This is Project LINK's **Digital Validation Gate**.
-**FHSIS Reference:** N/A — this is a Project LINK digital workflow. The FHSIS MOP assigns ITR recording authority to the Midwife at the facility level; Project LINK extends capture to BHWs and introduces this validation layer.
-**Who fills it:** BHW submits the original ITR entry; Midwife reviews and makes the approve/return decision.
-**Who reviews/approves it:** Midwife is the sole approver for BHW-submitted records within their BHS.
-**Frequency:** Daily — the Midwife processes the queue as records arrive from BHW field sync.
-**Storage location:** `encounters` table (status column), `audit_logs` table (state change log).
+**Purpose:** Daily review and approval/return of BHW-submitted ITR encounter records. This is the Digital Validation Gate — BHW entries never go directly into FHSIS reports.
+**FHSIS Reference:** FHSIS MOP 2018, Chapter 2 — Roles and Responsibilities (Midwife validates BHW-recorded data before consolidation)
+**Who fills it:** Midwife performs the validation action (approve or return)
+**Who reviews/approves it:** N/A — the midwife is the approver. Audit log captures all actions.
+**Frequency:** Daily (as BHW submissions arrive)
+**Storage location:** `encounters` table (`record_status` column); `audit_logs` table for action history
 
 ---
 
 ## Required Fields
 
-These fields are **displayed** to the Midwife from the BHW-submitted record. The Midwife does not re-enter them — they are read-only in the validation view.
+These are the fields displayed to the midwife for each record in the queue. The midwife does not enter these — they are read from the BHW submission.
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Encounter ID** | UUID | System-generated | Unique per visit |
-| **Patient Name** | String | From `patients` table | Display: Last, First, Middle |
-| **Patient ID** | String | Format: `{BHS_CODE}-{YYYY}-{NNNN}` | Link to patient ITR |
-| **Service Type** | Enum | `Maternal`, `EPI`, `Nutrition`, `NCD`, `TB-DOTS`, `General` | Filter criterion |
-| **Date of Visit** | Date | `YYYY-MM-DD` | Sort criterion |
-| **Submitting BHW** | String | FK to `user_profiles` | BHW who recorded the encounter |
-| **Submission Timestamp** | DateTime | ISO 8601 | When the record synced to server |
-| **Record Status** | Enum | Must be `PENDING_VALIDATION` to appear in queue | Filter: only show pending |
-| **High-Risk Flag** | Boolean | Computed from encounter data | Prominent display if `true` |
-| **High-Risk Reason** | String | Auto-populated | Displayed as badge |
+| `encounter_id` | UUID | System-generated. Read-only. | Unique identifier of the BHW-submitted record |
+| `patient_first_name` | String | Read-only display | From `patients` table |
+| `patient_last_name` | String | Read-only display | From `patients` table |
+| `patient_id` | String | Read-only display | Unified patient ID |
+| `service_category` | Enum | Read-only display | `General`, `Maternal`, `EPI`, `FP`, `Nutrition`, `NCD`, `TB-DOTS`, `Infectious Disease` |
+| `date_of_visit` | Date | Read-only display | Date the BHW recorded the encounter |
+| `submitted_by` | String | Read-only display | BHW user ID / name (FK to `user_profiles`) |
+| `submission_timestamp` | Timestamp | Read-only display | When the record was synced/submitted |
+| `record_status` | Enum | Must be `PENDING_VALIDATION` to appear in queue | Current status |
+| `is_high_risk` | Boolean | Read-only display | If true, display prominent high-risk badge |
+| `high_risk_reason` | String | Read-only display | Auto-populated reason for the flag |
 
-### Midwife Decision Fields
+### Validation Action Fields (Midwife enters)
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Decision** | Enum | `APPROVE` / `RETURN` | Required — no "save without decision" |
-| **Return Reason** | Text | Required if `RETURN`; min 10 characters | Free text explaining what needs correction |
-| **Reviewer ID** | String (auto) | FK to `user_profiles` — the logged-in Midwife | System-populated |
-| **Review Timestamp** | DateTime (auto) | ISO 8601 | System-populated at confirmation |
+| `validation_action` | Enum | Required. `APPROVE` or `RETURN` | The midwife's decision |
+| `return_reason` | Text | Required if `validation_action = RETURN`. Min 10 characters. | Free-text explanation sent back to BHW |
+| `validated_by` | UUID | System-populated from session | Midwife user ID |
+| `validated_at` | Timestamp | System-generated | Timestamp of the action |
 
 ---
 
@@ -42,37 +43,41 @@ These fields are **displayed** to the Midwife from the BHW-submitted record. The
 
 | Field Name | Data Type | Condition for Display | Notes |
 |:-----------|:----------|:----------------------|:------|
-| **Return Reason** | Text | Only visible/required when decision = `RETURN` | Must explain what needs correction |
-| **Patient History Context** | Read-only panel | Always displayed when record is opened | Prior visits for same program, to aid clinical review |
+| `return_reason` | Text | Only shown when `RETURN` is selected | Required when returning a record |
+| `patient_history_context` | JSON/View | Always available via expand/drill-down | Prior visits for the same program — helps midwife assess correctness |
 
 ---
 
 ## Enums / Controlled Vocabularies
 
-- **Record Status:** `PENDING_SYNC`, `PENDING_VALIDATION`, `VALIDATED`, `RETURNED`
-- **Service Type:** `General`, `Maternal`, `EPI`, `Nutrition`, `NCD`, `TB-DOTS`, `Infectious Disease`
-- **Decision:** `APPROVE`, `RETURN`
+| Enum | Values |
+|:-----|:-------|
+| `validation_action` | `APPROVE`, `RETURN` |
+| `record_status` (post-action) | `VALIDATED` (if approved), `RETURNED` (if returned) |
+| `service_category` | `General`, `Maternal`, `EPI`, `FP`, `Nutrition`, `NCD`, `TB-DOTS`, `Infectious Disease` |
 
 ---
 
 ## UX / Clinical Safety Concerns
 
-- **Approve and Return buttons must be visually separated** — never adjacent. Use clear visual separation (e.g., Approve on right with primary color, Return on left with destructive/warning color, with spacing between).
-- **Explicit confirmation on state change** — both Approve and Return require a confirmation dialog before the action is committed. This is irreversible in the forward direction.
-- **High-risk flag prominence** — if the record has `is_high_risk = true`, display a persistent color-coded badge (red) at the top of the review detail view. The Midwife must be able to see risk context before making a decision.
-- **Patient history context** — when the Midwife opens a record for review, show the patient's prior visits for the same program (e.g., last 3 ANC visits if reviewing a maternal record). This helps the Midwife validate data consistency.
-- **Queue sorting** — default sort: submission date ascending (oldest first). Secondary sort: service type. Filters: service type, date range, risk status, BHW name.
-- **Pending count badge** — the Midwife dashboard must show a persistent badge with the count of `PENDING_VALIDATION` records. This count should update in near real-time.
-- **Keyboard navigation** — the queue table and detail view must be fully keyboard-navigable for desktop use.
-- **Return notification** — when a record is returned, the BHW must be notified in-app with the return reason. The returned record must reappear in the BHW's work queue.
+- **Approve and Return buttons must be visually separated** — never adjacent without clear spacing or color distinction. Approve = primary/green action. Return = secondary/amber action.
+- **Explicit confirmation on state change** — both Approve and Return require a confirmation dialog before executing. "Are you sure you want to approve this record?" / "Are you sure you want to return this record?"
+- **Return requires reason** — the text field must be non-empty (min 10 chars) before the Return action can be confirmed. The reason is sent as a notification to the BHW.
+- **High-risk flag prominently displayed** — if the record has `is_high_risk = true`, the high-risk badge and reason must be visible at the top of the record detail view, not buried in fields.
+- **Patient history context** — show prior visits for the same program (e.g., last 3 ANC visits for a maternal record) so the midwife can verify continuity.
+- **Queue sorting** — default sort: submission date (oldest first), then by service type. Provide filters for service type, date range, and risk status.
+- **Pending count badge** — dashboard must show a count badge for `PENDING_VALIDATION` records.
+- **Keyboard navigation** — the validation queue is a desktop-heavy workflow. Support keyboard navigation: arrow keys to move between records, Enter to open, hotkeys for Approve (Ctrl+A?) and Return (Ctrl+R?).
+- **Audit trail** — every validation action creates an `audit_logs` entry with the action, actor, timestamp, and (for returns) the reason. No PII in audit logs.
 
 ---
 
 ## Database Schema Notes
 
-- **Table:** `encounters` — the `record_status` column tracks the state machine: `PENDING_SYNC` → `PENDING_VALIDATION` → `VALIDATED` / `RETURNED`.
-- **Audit log:** Every state transition (approve or return) creates an entry in `audit_logs` with: `action` (`VALIDATE` / `RETURN`), `encounter_id`, `reviewer_id`, `timestamp`, `return_reason` (if applicable). No PII in audit logs.
-- **Indexes:** Index on `(health_station_id, record_status, created_at)` for efficient queue loading.
-- **RLS:** Midwife can only see encounters where `health_station_id` matches their JWT claim.
-- **Soft delete:** `deleted_at TIMESTAMPTZ` on `encounters`. All reads: `WHERE deleted_at IS NULL`. RA 10173 compliance.
-- **No direct status update endpoint:** The status can only transition through the validation workflow — never via a generic PATCH. This prevents bypassing the validation gate.
+- **Table:** `encounters` — the `record_status` column transitions from `PENDING_VALIDATION` to `VALIDATED` or `RETURNED`.
+- **Audit log:** INSERT into `audit_logs` on every validation action. Fields: `action` (APPROVE/RETURN), `actor_id`, `target_encounter_id`, `reason` (for RETURN only), `timestamp`.
+- **Index:** `encounters(health_station_id, record_status)` — for fast queue queries filtering by BHS and pending status.
+- **Soft delete:** N/A for validation actions themselves, but the underlying encounter records follow the `deleted_at` soft-delete rule.
+- **RLS:** Midwife can only see/validate encounters where `health_station_id` matches her JWT claim.
+- **Notification:** On RETURN, insert a notification record for the BHW (or use Supabase Realtime to push the return reason to the BHW's session).
+- **TCL auto-update:** On APPROVE (`VALIDATED`), the corresponding TCL row is automatically updated by the auto-tally engine.

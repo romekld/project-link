@@ -15,14 +15,59 @@ import type {
 const dasmarinasBoundariesUrl = new URL('./data/dasmarinas-boundaries.geojson', import.meta.url).href
 const cho2BoundariesUrl = new URL('./data/cho2-boundaries.geojson', import.meta.url).href
 
-function seededNumber(seed: string, min: number, max: number) {
+function seededHash(seed: string) {
   let hash = 0
   for (let index = 0; index < seed.length; index += 1) {
     hash = ((hash << 5) - hash + seed.charCodeAt(index)) | 0
   }
 
-  const normalized = Math.abs(hash % 1000) / 1000
+  return hash
+}
+
+function seededFraction(seed: string) {
+  const hash = seededHash(seed)
+  return Math.abs(hash % 1000) / 1000
+}
+
+function seededNumber(seed: string, min: number, max: number) {
+  const normalized = seededFraction(seed)
   return Math.round(min + normalized * (max - min))
+}
+
+function buildHeatPoints(feature: ChoroplethBoundaryCollection['features'][number]) {
+  const [minX, minY, maxX, maxY] = bbox(feature)
+  const width = maxX - minX
+  const height = maxY - minY
+  const xPadding = width * 0.16
+  const yPadding = height * 0.16
+  const xStart = minX + xPadding
+  const xSpan = Math.max(width - xPadding * 2, width * 0.12)
+  const yStart = minY + yPadding
+  const ySpan = Math.max(height - yPadding * 2, height * 0.12)
+  const pointCount = Math.max(4, Math.min(12, Math.ceil(feature.properties.mockCases / 4)))
+  const baseWeight = Math.max(1, Math.round(feature.properties.mockCases / pointCount))
+
+  return Array.from({ length: pointCount }, (_, index) => {
+    const xOffset = seededFraction(`${feature.properties.ADM4_PCODE}-heat-x-${index}`)
+    const yOffset = seededFraction(`${feature.properties.ADM4_PCODE}-heat-y-${index}`)
+    const hotspotWeight = 1 + seededFraction(`${feature.properties.ADM4_PCODE}-heat-weight-${index}`) * 0.9
+    const intensity = Math.max(1, Math.round(baseWeight * hotspotWeight))
+
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [xStart + xOffset * xSpan, yStart + yOffset * ySpan],
+      },
+      properties: {
+        barangayCode: feature.properties.ADM4_PCODE,
+        barangayName: feature.properties.ADM4_EN,
+        intensity,
+        hotspotWeight: Number(hotspotWeight.toFixed(3)),
+        totalCases: feature.properties.mockCases,
+      },
+    }
+  })
 }
 
 function asBoundaryCollection(payload: unknown) {
@@ -103,22 +148,7 @@ export function buildIntelligenceFixtures(
     type: 'FeatureCollection',
     features: choroplethCollection.features
       .filter((feature) => feature.properties.inCho2Scope)
-      .map((feature) => {
-        const [minX, minY, maxX, maxY] = bbox(feature)
-        return {
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [(minX + maxX) / 2, (minY + maxY) / 2],
-          },
-          properties: {
-            barangayCode: feature.properties.ADM4_PCODE,
-            barangayName: feature.properties.ADM4_EN,
-            intensity: feature.properties.mockCases,
-            totalCases: feature.properties.mockCases,
-          },
-        }
-      }),
+      .flatMap(buildHeatPoints),
   }
 
   const [minX, minY, maxX, maxY] = bbox(dasmarinas as FeatureCollection<MultiPolygon, BoundaryFeatureProperties>)
@@ -168,8 +198,8 @@ export function getRoleMapActions(roleView: MapRoleView) {
 
   if (roleView === 'cho') {
     return [
-      { label: 'Reports archive', to: '/cho/archive' },
-      { label: 'Sign-off queue', to: '/cho/sign-off' },
+      { label: 'Coverage planner', to: '/cho/intelligence/coverage' },
+      { label: 'Health station pins', to: '/cho/intelligence/pins' },
     ]
   }
 

@@ -36,6 +36,7 @@ export interface DiseaseHeatPointProperties {
   barangayCode: string
   barangayName: string
   intensity: number
+  hotspotWeight: number
   totalCases: number
 }
 
@@ -56,6 +57,34 @@ export interface BarangaySnapshot {
   householdsCovered: number
   alertStatus: 'stable' | 'watch' | 'hotspot'
   summary: string
+}
+
+export type CoveragePendingAction = 'add' | 'remove'
+
+export interface CoveragePlannerRecord {
+  barangayCode: string
+  barangayName: string
+  bhsName: string
+  inCho2Scope: boolean
+  totalCases: number
+  activeAlerts: number
+  validationRate: number
+  householdsCovered: number
+  pendingAction: CoveragePendingAction | null
+  changeReason: string
+}
+
+export type HealthStationPinStatus = 'saved' | 'updated'
+
+export interface HealthStationPinRecord {
+  id: string
+  stationName: string
+  barangayCode: string
+  barangayName: string
+  latitude: number
+  longitude: number
+  isPrimary: boolean
+  draftStatus: HealthStationPinStatus
 }
 
 export interface IntelligenceFixtures {

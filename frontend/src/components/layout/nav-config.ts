@@ -136,6 +136,8 @@ export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
       title: 'Intelligence', url: '/cho/intelligence', icon: Map,
       children: [
         { title: 'Disease Map', url: '/cho/intelligence/map' },
+        { title: 'Coverage Planner', url: '/cho/intelligence/coverage' },
+        { title: 'Health Station Pins', url: '/cho/intelligence/pins' },
         { title: 'Forecasting', url: '/cho/intelligence/forecast' },
       ],
     },
@@ -150,7 +152,13 @@ export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
         { title: 'Create User', url: '/admin/users/new' },
       ],
     },
-    { title: 'BHS Registry', url: '/admin/bhs', icon: Hospital },
+    {
+      title: 'BHS Registry', url: '/admin/bhs/coverage', icon: Hospital,
+      children: [
+        { title: 'Coverage Planner', url: '/admin/bhs/coverage' },
+        { title: 'Health Station Pins', url: '/admin/bhs/pins' },
+      ],
+    },
     { title: 'Audit Logs', url: '/admin/audit-logs', icon: ClipboardClock },
   ],
 }
@@ -178,10 +186,11 @@ export const QUICK_LINKS_CONFIG: Record<UserRole, QuickLink[]> = {
   ],
   city_health_officer: [
     { title: 'Disease Map', url: '/cho/intelligence/map', icon: Map },
+    { title: 'Coverage Planner', url: '/cho/intelligence/coverage', icon: Hospital },
     { title: 'Forecasting', url: '/cho/intelligence/forecast', icon: TrendingUp },
   ],
   system_admin: [
     { title: 'Create User', url: '/admin/users/new', icon: UserPlus },
-    { title: 'BHS Registry', url: '/admin/bhs', icon: Hospital },
+    { title: 'Coverage Planner', url: '/admin/bhs/coverage', icon: Hospital },
   ],
 }

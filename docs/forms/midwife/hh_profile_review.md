@@ -1,59 +1,55 @@
 # HH Profile Review & Master List Management — Admin / Registry
 
 **Role:** Midwife (RHM)
-**Purpose:** Receive and review BHW-submitted Household Profile forms, verify completeness, and compile the data into four Master Lists that pre-populate the TCLs.
-**FHSIS Reference:** FHSIS MOP 2018, Chapter 3 — Profiling of Households (PDF pages 44–48, doc pages 30–34)
-**Who fills it:** BHW submits the HH Profile; Midwife reviews and processes into Master Lists.
-**Who reviews/approves it:** Midwife is the compiler and reviewer.
-**Frequency:** Quarterly — January (full profiling) + April, July, October (quarterly updates). BHWs submit by the 3rd week of the first month of each quarter.
-**Storage location:** `households` table (household-level), `household_members` table (member-level), `master_list_entries` table (derived).
+**Purpose:** Quarterly review of BHW-submitted Household Profile forms. The midwife verifies completeness, identifies new individuals per age/health group, and updates Master Lists that pre-populate TCL name columns.
+**FHSIS Reference:** FHSIS MOP 2018, Chapter 3 — Profiling of Households (doc pages 30-34)
+**Who fills it:** BHW fills the HH Profile; Midwife reviews, approves, and builds Master Lists
+**Who reviews/approves it:** Midwife is the reviewer
+**Frequency:** Quarterly (January baseline, April/July/October updates). BHW submits by 3rd week of January (Q1) and 1st month of each subsequent quarter.
+**Storage location:** `households` table, `household_members` table; Master List views derived from `patients` + `household_members`
 
 ---
 
 ## Required Fields
 
-### HH Profile Review (Read-Only — from BHW submission)
+The midwife reviews these fields from the BHW's HH Profile submission (read-only review):
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Household Number** | String | Format: `BHS_CODE-YYYY-NNNN` | Family Serial No., persistent across FHSIS forms |
-| **Date of Visit** | Date | Must be within the current quarter | Quarter-specific field |
-| **Name of Respondent** | String | Last, First, MI | HH Head or decision-making member |
-| **NHTS Status** | Enum | `NHTS-4Ps` / `Non-NHTS` | Propagates to all member records |
-| **IP Status** | Boolean | `IP` / `Non-IP` | |
-| **PhilHealth Member** | Boolean | Yes / No | HH Head's PhilHealth status |
-| **PhilHealth ID** | String | Format: `XX-XXXXXXXXX-X` | Required if PhilHealth = Yes |
-| **PhilHealth Category** | Enum | Formal, Informal, Indigent, Senior Citizen, etc. | |
-| **Member Roster** | Array | At least 1 member (HH Head) required | See member fields below |
+| `household_number` | String | System-generated. Format: `BHS_CODE-YYYY-NNNN` | Family Serial Number used across all FHSIS forms |
+| `respondent_last_name` | String | Required | Paper form shows as 'Name of Respondent'; normalized |
+| `respondent_first_name` | String | Required | |
+| `respondent_middle_initial` | String | Optional | |
+| `nhts_status` | Enum | Required. `NHTS-4Ps` / `Non-NHTS` | Used for FHSIS disaggregation |
+| `ip_status` | Boolean | Required. `IP` / `Non-IP` | Indigenous People flag |
+| `philhealth_member` | Boolean | Required | HH Head PhilHealth membership |
+| `philhealth_id` | String | Required if `philhealth_member = true`. Format: `XX-XXXXXXXXX-X` | |
+| `philhealth_category` | Enum | Required if `philhealth_member = true` | Formal, Informal, Indigent, Senior Citizen, etc. |
+| `quarter` | Enum | `Q1`, `Q2`, `Q3`, `Q4` | Which quarterly update this submission covers |
+| `date_of_visit` | Date | Required | Date BHW visited the household |
 
-### Member Roster Fields (Per Household Member)
+### Household Member Roster (per member)
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Member Name** | String | Last, First, Mother's Maiden Name | Required |
-| **Relationship to HH Head** | Enum | `1` Head, `2` Spouse, `3` Son, `4` Daughter, `5` Others | Required |
-| **Sex** | Enum | `M` / `F` | Required |
-| **Age** | Integer | Age at last birthday | Required |
-| **Birthday** | Date | `MM-DD-YY` (DOH format) | Estimate allowed, flag if estimated |
-| **Classification (Current Quarter)** | Enum | See classification codes | Required per quarter |
-| **Remarks** | Text | PhilHealth details for members ≥21 y/o; transfer notes | |
+| `member_last_name` | String | Required | Paper form shows 'Name'; normalized |
+| `member_first_name` | String | Required | |
+| `member_mothers_maiden_name` | String | Optional | Used as middle name identifier per DOH convention |
+| `relationship_to_head` | Enum | Required. `1`=Head, `2`=Spouse, `3`=Son, `4`=Daughter, `5`=Others | |
+| `sex` | Enum | Required. `M` / `F` | |
+| `date_of_birth` | Date | Required (estimate if unknown, flag as estimated) | |
+| `age` | Integer | Auto-computed from DOB. Never stored. | Age at last birthday |
+| `classification` | Enum | Required per quarter. Auto-suggested from DOB + health flags. | See classification codes below |
+| `remarks` | Text | Required for members >= 21 y/o (PhilHealth info) | Also for transfer/new resident notes |
 
-### Classification Codes
+### Midwife Review Action Fields
 
-| Code | Classification | Criteria |
-|:-----|:---------------|:---------|
-| `N` | Newborn | 0–28 days |
-| `I` | Infant | 29 days – 11 months |
-| `U` | Under-five Child | 1–4 years (12–59 months) |
-| `S` | School-Aged Child | 5–9 years |
-| `A` | Adolescent | 10–19 years |
-| `P` | Pregnant | Any pregnant woman |
-| `AP` | Adolescent-Pregnant | Pregnant + 10–19 years |
-| `PP` | Post-Partum | Gave birth in last 6 weeks |
-| `WRA` | Women of Reproductive Age | Female, 15–49, not P or PP |
-| `SC` | Senior Citizen | 60+ years |
-| `PWD` | Person with Disability | Any age |
-| `AB` | Adult | 20–59 years |
+| Field Name | Data Type | Constraints / Validation Rules | Notes |
+|:-----------|:----------|:-------------------------------|:------|
+| `review_status` | Enum | `APPROVED` / `NEEDS_CORRECTION` | Midwife's decision on the HH Profile submission |
+| `review_notes` | Text | Optional. Required if `NEEDS_CORRECTION`. | Feedback to BHW |
+| `reviewed_by` | UUID | System-populated | Midwife user ID |
+| `reviewed_at` | Timestamp | System-generated | |
 
 ---
 
@@ -61,55 +57,54 @@
 
 | Field Name | Data Type | Condition for Display | Notes |
 |:-----------|:----------|:----------------------|:------|
-| **PhilHealth ID** | String | Only if `philhealth_member = true` | |
-| **PhilHealth Category** | Enum | Only if `philhealth_member = true` | |
-| **IP Ethnicity** | String | Only if `ip_status = true` | Specify ethnic group |
+| `review_notes` | Text | When `NEEDS_CORRECTION` selected | Feedback to BHW |
+| `philhealth_id` | String | When `philhealth_member = true` | |
+| `philhealth_category` | Enum | When `philhealth_member = true` | |
 
 ---
 
 ## Enums / Controlled Vocabularies
 
-- **NHTS Status:** `NHTS-4Ps`, `Non-NHTS`
-- **Relationship:** `1` (Head), `2` (Spouse), `3` (Son), `4` (Daughter), `5` (Others — specify)
-- **Sex:** `M`, `F`
-- **Classification Codes:** `N`, `I`, `U`, `S`, `A`, `P`, `AP`, `PP`, `WRA`, `SC`, `PWD`, `AB`
-- **PhilHealth Category:** Formal Economy, Informal Economy, Indigent/Sponsored, Senior Citizen, Lifetime Member
+### Classification Codes (per FHSIS MOP Ch. 3)
 
----
-
-## Master List Derivation
-
-The Midwife's primary action after reviewing HH Profiles is to update 4 Master Lists. Each Master List is derived from household member data by classification code:
-
-| Master List | Source Classification Codes | Feeds |
-|:------------|:---------------------------|:------|
-| **Pregnant & Postpartum Women** | `P`, `AP`, `PP` | Maternal Care TCL |
-| **Infants 0–11 months** | `N`, `I` | Child Care TCL Part 1 |
-| **Children 12–59 months** | `U` | Child Care TCL Part 2 |
-| **Adults 20+ years** | `AB`, `SC` | NCD TCL Part 1 |
-
-Master Lists provide the **denominator** for FHSIS coverage indicators and the **name column** for each TCL.
+| Code | Classification | Criteria |
+|:-----|:---------------|:---------|
+| `N` | Newborn | 0-28 days |
+| `I` | Infant | 29 days - 11 months |
+| `U` | Under-five Child | 1-4 years (12-59 months) |
+| `S` | School-Aged Child | 5-9 years |
+| `A` | Adolescent | 10-19 years |
+| `P` | Pregnant | Any pregnant woman |
+| `AP` | Adolescent-Pregnant | Pregnant and 10-19 years simultaneously |
+| `PP` | Post-Partum | Gave birth in last 6 weeks |
+| `WRA` | Women of Reproductive Age | Female, 15-49 years, not currently pregnant/PP |
+| `SC` | Senior Citizen | 60+ years |
+| `PWD` | Person with Disability | Any age |
+| `AB` | Adult | 20-59 years |
 
 ---
 
 ## UX / Clinical Safety Concerns
 
-- **Completeness check** — when the Midwife reviews a submitted HH Profile, highlight any missing required fields (empty classification, missing birthday, etc.) in red.
-- **Auto-classification suggestion** — system should auto-suggest classification codes from `date_of_birth` + pregnancy/postpartum flags, but the Midwife must be able to override.
-- **Quarterly comparison** — show side-by-side comparison of current vs previous quarter's classification for each member, highlighting changes (e.g., infant → under-five transition).
-- **New member detection** — flag members that appear for the first time (not in previous quarter's roster) so the Midwife can add them to the appropriate Master List.
-- **Transfer tracking** — flag households or members marked as transferred out so the Midwife can remove them from Master Lists.
-- **Batch processing** — Midwife may receive 20–25 HH Profiles per BHW at once. The UI must support reviewing multiple profiles efficiently (table view with expand/collapse per household).
+- **Auto-classification suggestion:** System should auto-suggest the classification code from `date_of_birth` + pregnancy/postpartum flags. Midwife confirms or overrides.
+- **Member count validation:** Flag if a household has an unusually high member count (>15) or zero members.
+- **Quarterly diff view:** When reviewing Q2/Q3/Q4 updates, show what changed since the previous quarter (new members, removed members, reclassifications) as a diff.
+- **Master List auto-generation:** On approval, the system should automatically:
+  - Add new pregnancies → Maternal Care TCL name column
+  - Add new infants → Child Care TCL Part 1 name column
+  - Move children reaching 12 months → Child Care TCL Part 2
+  - Add newly identified adults 20+ → NCD TCL Part 1
+- **Duplicate detection:** Flag if a household member name + DOB matches an existing patient record (potential duplicate).
 
 ---
 
 ## Database Schema Notes
 
-- **Tables:** `households` (one row per household), `household_members` (one row per member, FK to `households`).
+- **Tables:** `households` (parent), `household_members` (child rows). FK `households.health_station_id`.
 - **Quarterly classification:** Store as `hh_member_classifications(member_id, year, quarter, classification_code)` child table — allows historical tracking.
-- **Master List entries:** `master_list_entries(id, master_list_type, member_id, year, quarter, health_station_id)` — derived from classification codes. Type: `MATERNAL`, `CHILD_0_11`, `CHILD_12_59`, `ADULT_20_PLUS`.
-- **FK:** `households.health_station_id` → `health_stations.id`. `households.assigned_bhw_id` → `user_profiles.id`.
-- **RLS:** Midwife can only see households where `health_station_id` matches JWT claim.
-- **NHTS propagation:** `households.nhts_status` propagates to all `household_members` and subsequently to all patient records created from those members.
-- **No clinical status lifecycle** — HH Profiles do not use `PENDING_VALIDATION`/`VALIDATED`. They are administrative intake forms.
-- **Family Serial Number** — `households.household_number` is the persistent linking key across ITR, TCL, and MCT forms. Must be stable.
+- **Family Serial Number:** `households.household_number` is the linking key across ITR, TCL, and MCT. Must be stable and persistent.
+- **BHW assignment:** `households.assigned_bhw_id` FK to `user_profiles`.
+- **RLS:** Midwife sees only households where `health_station_id` matches her JWT claim.
+- **Indexes:** `household_members(household_id)`, `households(health_station_id, assigned_bhw_id)`.
+- **Soft delete:** `deleted_at` on both tables. Never hard-delete (RA 10173).
+- **Patient linkage:** Each household member should link to a `patients` record via `patient_id` once they receive any clinical service.

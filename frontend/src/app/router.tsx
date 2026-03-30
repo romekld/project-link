@@ -9,7 +9,11 @@ import { Providers } from '@/app/providers'
 import { AppShell } from '@/components/layout/app-shell'
 import { supabase } from '@/lib/supabase'
 import { env } from '@/config/env'
-import { IntelligenceMapPage } from '@/features/intelligence'
+import {
+  CoveragePlannerPage,
+  HealthStationPinsPage,
+  IntelligenceMapPage,
+} from '@/features/intelligence'
 import type { UserRole } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -409,6 +413,16 @@ const choIntelligenceMapRoute = createRoute({
   path: '/intelligence/map',
   component: () => <IntelligenceMapPage roleView="cho" />,
 })
+const choCoveragePlannerRoute = createRoute({
+  getParentRoute: () => choLayoutRoute,
+  path: '/intelligence/coverage',
+  component: () => <CoveragePlannerPage roleScope="cho" />,
+})
+const choHealthStationPinsRoute = createRoute({
+  getParentRoute: () => choLayoutRoute,
+  path: '/intelligence/pins',
+  component: () => <HealthStationPinsPage roleScope="cho" />,
+})
 const choCatchAllRoute = createRoute({
   getParentRoute: () => choLayoutRoute,
   path: '/$',
@@ -448,6 +462,24 @@ const adminUsersEditRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: '/users/$id/edit',
   component: EditUserPage,
+})
+const adminBhsIndexRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/bhs',
+  beforeLoad: () => {
+    throw redirect({ to: '/admin/bhs/coverage' })
+  },
+  component: () => null,
+})
+const adminBhsCoverageRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/bhs/coverage',
+  component: () => <CoveragePlannerPage roleScope="admin" />,
+})
+const adminBhsPinsRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/bhs/pins',
+  component: () => <HealthStationPinsPage roleScope="admin" />,
 })
 const adminCatchAllRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
@@ -500,12 +532,21 @@ const routeTree = rootRoute.addChildren([
   phnLayoutRoute.addChildren([phnDashboardRoute, phnIntelligenceMapRoute, phnCatchAllRoute]),
   phisLayoutRoute.addChildren([phisDashboardRoute, phisCatchAllRoute]),
   dsoLayoutRoute.addChildren([dsoDashboardRoute, dsoIntelligenceMapRoute, dsoCatchAllRoute]),
-  choLayoutRoute.addChildren([choDashboardRoute, choIntelligenceMapRoute, choCatchAllRoute]),
+  choLayoutRoute.addChildren([
+    choDashboardRoute,
+    choIntelligenceMapRoute,
+    choCoveragePlannerRoute,
+    choHealthStationPinsRoute,
+    choCatchAllRoute,
+  ]),
   adminLayoutRoute.addChildren([
     adminDashboardRoute,
     adminUsersRoute,
     adminUsersNewRoute,
     adminUsersEditRoute,
+    adminBhsIndexRoute,
+    adminBhsCoverageRoute,
+    adminBhsPinsRoute,
     adminCatchAllRoute,
   ]),
 ])

@@ -5,6 +5,7 @@ import type maplibregl from 'maplibre-gl'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Drawer,
@@ -41,12 +42,12 @@ import {
 } from '@/features/intelligence/fixtures'
 import type { BarangaySnapshot, GeoLayerId, MapRoleView } from '@/features/intelligence/types'
 import {
-  Activity,
   AlertTriangle,
   Building2,
+  ChevronLeft,
+  ChevronRight,
   MapPinned,
   Radar,
-  ShieldCheck,
 } from 'lucide-react'
 
 interface IntelligenceMapPageProps {
@@ -76,10 +77,46 @@ const layerLabels: Record<GeoLayerId, { title: string; description: string }> = 
 }
 
 const mapColorScale = ['#ecfdf5', '#bbf7d0', '#4ade80', '#15803d']
+const mapViewportHeightClass = 'h-[calc(100dvh-7.5rem)] min-h-[34rem] xl:h-[calc(100dvh-7.5rem)]'
+const layerGroups: Array<{
+  title: string
+  description: string
+  layers: GeoLayerId[]
+}> = [
+  {
+    title: 'Base context',
+    description: 'Operational boundaries and intensity context for the selected role view.',
+    layers: ['choropleth', 'scope'],
+  },
+  {
+    title: 'Overlays',
+    description: 'Investigative overlay layers that sit on top of the base map.',
+    layers: ['diseaseHeat'],
+  },
+]
 
-function getMapStyles(apiKey: string) {
+const presetLabels: Record<'operational' | 'heatFocus' | 'scopeOnly', string[]> = {
+  operational: ['Barangay intensity', 'CHO2 scope'],
+  heatFocus: ['CHO2 scope', 'Disease heat'],
+  scopeOnly: ['CHO2 scope'],
+}
+
+// Map provider styles
+const cartoStyles = {
+  light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+  dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+}
+
+function getMaptilerStyles(apiKey: string) {
   const style = `https://api.maptiler.com/maps/streets-v2/style.json?key=${apiKey}`
   return { light: style, dark: style }
+}
+
+function getMapStyles(provider: 'carto' | 'maptiler', apiKey?: string) {
+  if (provider === 'maptiler' && apiKey) {
+    return getMaptilerStyles(apiKey)
+  }
+  return cartoStyles
 }
 
 function statusVariant(status: BarangaySnapshot['alertStatus']): 'secondary' | 'outline' | 'destructive' {
@@ -300,7 +337,7 @@ function MapLayerSurface({
         id: 'intelligence-heat-layer',
         type: 'heatmap',
         source: 'intelligence-heat',
-        maxzoom: 11,
+        maxzoom: 13,
         paint: {
           'heatmap-weight': [
             'interpolate',
@@ -308,7 +345,7 @@ function MapLayerSurface({
             ['get', 'intensity'],
             0,
             0,
-            42,
+            10,
             1,
           ],
           'heatmap-intensity': [
@@ -316,67 +353,112 @@ function MapLayerSurface({
             ['linear'],
             ['zoom'],
             5,
-            0.7,
+            0.9,
             11,
-            2.2,
+            2.4,
+            13,
+            3.1,
           ],
           'heatmap-color': [
             'interpolate',
             ['linear'],
             ['heatmap-density'],
             0,
-            'rgba(245, 158, 11, 0)',
-            0.2,
-            'rgba(251, 191, 36, 0.45)',
-            0.5,
-            'rgba(249, 115, 22, 0.62)',
-            0.8,
-            'rgba(220, 38, 38, 0.78)',
+            'rgba(248, 250, 252, 0)',
+            0.16,
+            'rgba(253, 224, 71, 0.30)',
+            0.34,
+            'rgba(251, 146, 60, 0.48)',
+            0.58,
+            'rgba(239, 68, 68, 0.7)',
+            0.82,
+            'rgba(190, 24, 93, 0.84)',
             1,
-            'rgba(127, 29, 29, 0.88)',
+            'rgba(103, 12, 34, 0.92)',
           ],
           'heatmap-radius': [
             'interpolate',
             ['linear'],
             ['zoom'],
             5,
-            18,
-            11,
-            44,
+            20,
+            10,
+            36,
+            13,
+            58,
           ],
           'heatmap-opacity': [
             'interpolate',
             ['linear'],
             ['zoom'],
-            8,
-            0.9,
+            6,
+            0.8,
             11,
+            0.95,
+            13,
             0.2,
           ],
         },
       })
     }
 
-    if (!map.getLayer('intelligence-heat-points')) {
+    if (!map.getLayer('intelligence-heat-hotspots')) {
       map.addLayer({
-        id: 'intelligence-heat-points',
+        id: 'intelligence-heat-hotspots',
         type: 'circle',
         source: 'intelligence-heat',
-        minzoom: 10,
+        minzoom: 12,
         paint: {
-          'circle-color': '#b91c1c',
+          'circle-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'hotspotWeight'],
+            1,
+            'rgba(251, 146, 60, 0.62)',
+            1.5,
+            'rgba(239, 68, 68, 0.74)',
+            1.9,
+            'rgba(127, 29, 29, 0.88)',
+          ],
           'circle-radius': [
             'interpolate',
             ['linear'],
-            ['get', 'intensity'],
-            0,
-            4,
-            42,
+            ['zoom'],
             12,
+            [
+              'interpolate',
+              ['linear'],
+              ['get', 'intensity'],
+              1,
+              4,
+              10,
+              10,
+            ],
+            15,
+            [
+              'interpolate',
+              ['linear'],
+              ['get', 'intensity'],
+              1,
+              7,
+              10,
+              14,
+            ],
           ],
-          'circle-opacity': 0.78,
-          'circle-stroke-color': '#fff7ed',
-          'circle-stroke-width': 1.5,
+          'circle-blur': 0.3,
+          'circle-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            12,
+            0,
+            12.4,
+            0.7,
+            15,
+            0.85,
+          ],
+          'circle-stroke-color': 'rgba(255, 247, 237, 0.9)',
+          'circle-stroke-width': 1,
         },
       })
     }
@@ -395,7 +477,7 @@ function MapLayerSurface({
     map.setLayoutProperty('intelligence-selected-outline', 'visibility', choroplethVisibility)
     map.setLayoutProperty('intelligence-cho2-outline', 'visibility', scopeVisibility)
     map.setLayoutProperty('intelligence-heat-layer', 'visibility', heatVisibility)
-    map.setLayoutProperty('intelligence-heat-points', 'visibility', heatVisibility)
+    map.setLayoutProperty('intelligence-heat-hotspots', 'visibility', heatVisibility)
 
     map.setFilter('intelligence-hover-outline', ['==', ['get', 'ADM4_PCODE'], hoveredCode ?? ''])
     map.setFilter('intelligence-selected-outline', ['==', ['get', 'ADM4_PCODE'], selectedCode ?? ''])
@@ -450,27 +532,25 @@ function MapLayerSurface({
 
 function LoadingState() {
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden">
-        <CardContent className="grid gap-4 p-6 lg:grid-cols-[1.6fr_1fr]">
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-10 w-72" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-24 rounded-2xl" />
-            <Skeleton className="h-24 rounded-2xl" />
-            <Skeleton className="h-24 rounded-2xl" />
-            <Skeleton className="h-24 rounded-2xl" />
+    <div className="grid gap-4 xl:grid-cols-[1fr_0.25fr]">
+      <Card className={`overflow-hidden border-primary/10 ${mapViewportHeightClass}`}>
+        <CardContent className="h-full p-0">
+          <Skeleton className="h-full w-full rounded-none" />
+        </CardContent>
+      </Card>
+      {/* Desktop only: sidebar skeleton */}
+      <Card className={`hidden overflow-hidden border-primary/10 xl:block ${mapViewportHeightClass}`}>
+        <CardHeader className="border-b bg-muted/20">
+          <Skeleton className="h-5 w-32" />
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="p-5 space-y-4">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
           </div>
         </CardContent>
       </Card>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Skeleton className="h-[70svh] rounded-3xl" />
-        <Skeleton className="h-[70svh] rounded-3xl" />
-      </div>
     </div>
   )
 }
@@ -479,8 +559,23 @@ export function IntelligenceMapPage({ roleView }: IntelligenceMapPageProps) {
   const isMobile = useIsMobile()
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [visibleLayers, setVisibleLayers] = useState<GeoLayerId[]>(
-    roleView === 'dso' ? ['scope'] : ['choropleth', 'scope'],
+    roleView === 'dso'
+      ? ['scope']
+      : roleView === 'cho'
+        ? ['choropleth', 'scope', 'diseaseHeat']
+        : ['choropleth', 'scope'],
   )
+  const [layerControlsOpen, setLayerControlsOpen] = useState(!isMobile)
+  const [mapProvider, setMapProvider] = useState<'carto' | 'maptiler'>(() => {
+    if (typeof window === 'undefined') return 'carto'
+    return (localStorage.getItem('gis-map-provider') as 'carto' | 'maptiler') ?? 'carto'
+  })
+
+  // Persist provider preference
+  const handleProviderChange = (provider: 'carto' | 'maptiler') => {
+    setMapProvider(provider)
+    localStorage.setItem('gis-map-provider', provider)
+  }
 
   const fixturesQuery = useQuery({
     queryKey: ['intelligence', 'fixtures'],
@@ -488,9 +583,25 @@ export function IntelligenceMapPage({ roleView }: IntelligenceMapPageProps) {
   })
 
   const availableLayers = useMemo(() => getAvailableLayersForRole(roleView), [roleView])
-  const mapStyles = env.maptilerApiKey ? getMapStyles(env.maptilerApiKey) : undefined
+  const mapStyles = useMemo(
+    () => getMapStyles(mapProvider, env.maptilerApiKey),
+    [mapProvider, env.maptilerApiKey]
+  )
   const selectedSnapshot = fixturesQuery.data?.snapshots[selectedCode ?? ''] ?? null
-  const roleLabel = getRoleViewLabel(roleView)
+
+  useEffect(() => {
+    setLayerControlsOpen(!isMobile)
+  }, [isMobile])
+
+  function applyPreset(preset: 'operational' | 'heatFocus' | 'scopeOnly') {
+    const presetLayers: Record<typeof preset, GeoLayerId[]> = {
+      operational: roleView === 'dso' ? ['scope'] : ['choropleth', 'scope'],
+      heatFocus: roleView === 'dso' ? ['scope'] : ['scope', 'diseaseHeat'],
+      scopeOnly: ['scope'],
+    }
+
+    setVisibleLayers(presetLayers[preset].filter((layer) => availableLayers.includes(layer)))
+  }
 
   useSetPageMeta({
     title: 'Disease Map',
@@ -533,71 +644,10 @@ export function IntelligenceMapPage({ roleView }: IntelligenceMapPageProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        <Card className="relative overflow-hidden border-primary/15 bg-card">
-          <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.16),transparent_58%)] lg:block" />
-          <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(20,83,45,0.35),transparent)]" />
-          <CardContent className="relative grid gap-6 p-6 lg:grid-cols-[1.55fr_1fr]">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">GIS MVP</Badge>
-                <Badge variant="secondary">{roleLabel} view</Badge>
-                <Badge variant="outline">Frontend-only</Badge>
-              </div>
-              <div className="space-y-2">
-                <h1 className="font-heading text-3xl font-semibold tracking-tight">Disease Map</h1>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  A choropleth-first operational map for Dasmariñas and CHO2. It keeps the data privacy-safe, highlights scope, and gives each role a focused intelligence surface before backend GIS wiring lands.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border bg-background/80 p-4 backdrop-blur">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MapPinned className="size-4" />
-                  City barangays
-                </div>
-                <div className="mt-3 font-heading text-2xl font-semibold">{fixtures.totals.cityBarangays}</div>
-              </div>
-              <div className="rounded-2xl border bg-background/80 p-4 backdrop-blur">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ShieldCheck className="size-4" />
-                  CHO2 scope
-                </div>
-                <div className="mt-3 font-heading text-2xl font-semibold">{fixtures.totals.cho2Barangays}</div>
-              </div>
-              <div className="rounded-2xl border bg-background/80 p-4 backdrop-blur">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Activity className="size-4" />
-                  Mock cases
-                </div>
-                <div className="mt-3 font-heading text-2xl font-semibold">{fixtures.totals.totalCases}</div>
-              </div>
-              <div className="rounded-2xl border bg-background/80 p-4 backdrop-blur">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <AlertTriangle className="size-4" />
-                  Active alerts
-                </div>
-                <div className="mt-3 font-heading text-2xl font-semibold">{fixtures.totals.activeAlerts}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {!env.maptilerApiKey ? (
-          <Alert>
-            <Radar />
-            <AlertTitle>MapTiler key missing</AlertTitle>
-            <AlertDescription>
-              The page will still render using the `mapcn` defaults so development can continue, but the intended basemap is not active until `VITE_MAPTILER_API_KEY` is available.
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <Card className="overflow-hidden border-primary/10">
-            <CardContent className="p-0">
-              <div className="relative h-[70svh] min-h-[540px] w-full bg-muted/30">
+      <div className="grid gap-4 xl:grid-cols-[1fr_0.25fr]">
+          <Card className={`overflow-hidden border-primary/10 ${mapViewportHeightClass}`}>
+            <CardContent className="h-full p-0">
+              <div className="relative h-full w-full bg-muted/30">
                 <Map
                   center={[120.9406, 14.3294]}
                   zoom={11}
@@ -606,7 +656,14 @@ export function IntelligenceMapPage({ roleView }: IntelligenceMapPageProps) {
                   styles={mapStyles}
                   className="h-full"
                 >
-                  <MapControls position="bottom-right" showZoom showFullscreen />
+                  <MapControls
+                    position="bottom-right"
+                    showZoom
+                    showFullscreen
+                    showProviderToggle
+                    mapProvider={mapProvider}
+                    onProviderChange={handleProviderChange}
+                  />
                   <MapLayerSurface
                     fixtures={fixtures}
                     selectedCode={selectedCode}
@@ -615,63 +672,127 @@ export function IntelligenceMapPage({ roleView }: IntelligenceMapPageProps) {
                   />
                 </Map>
 
-                <Card className="absolute left-4 top-4 z-10 w-[min(100%-2rem,22rem)] border-primary/10 bg-background/88 shadow-lg supports-backdrop-filter:backdrop-blur">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Layer controls</CardTitle>
-                    <CardDescription>Only working layers are exposed in this MVP.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <ToggleGroup
-                      value={visibleLayers}
-                      onValueChange={(value) => setVisibleLayers((value as GeoLayerId[]) ?? [])}
-                      multiple
-                      orientation="vertical"
-                      spacing={1}
-                      className="w-full items-stretch"
-                    >
-                      {availableLayers.map((layerId) => (
-                        <Tooltip key={layerId}>
-                          <TooltipTrigger className="w-full">
-                            <ToggleGroupItem value={layerId} variant="outline" className="w-full justify-between">
-                              <span>{layerLabels[layerId].title}</span>
-                              <Badge variant="outline">{layerId === 'diseaseHeat' ? 'Overlay' : 'Base'}</Badge>
-                            </ToggleGroupItem>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-56">
-                            {layerLabels[layerId].description}
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </ToggleGroup>
-                    <Separator />
-                    <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                      <div className="rounded-xl border bg-muted/20 p-3">
-                        <div className="font-medium text-foreground">Default view</div>
-                        <div className="mt-1 leading-5">Choropleth first, heat off, CHO2 scope on.</div>
-                      </div>
-                      <div className="rounded-xl border bg-muted/20 p-3">
-                        <div className="font-medium text-foreground">Interaction</div>
-                        <div className="mt-1 leading-5">Hover to inspect, click to lock the barangay snapshot.</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Layer controls toggle button */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute left-4 top-4 z-20 h-10 w-10"
+                  onClick={() => setLayerControlsOpen(!layerControlsOpen)}
+                  aria-label={layerControlsOpen ? 'Close layer controls' : 'Open layer controls'}
+                  aria-expanded={layerControlsOpen}
+                >
+                  {layerControlsOpen ? (
+                    <ChevronLeft className="size-4" />
+                  ) : (
+                    <ChevronRight className="size-4" />
+                  )}
+                </Button>
+
+                {/* Collapsible layer controls panel */}
+                <Collapsible
+                  open={layerControlsOpen}
+                  onOpenChange={setLayerControlsOpen}
+                  className="absolute left-4 top-16 z-10 w-[min(100%-2rem,22rem)]"
+                >
+                  <CollapsibleContent>
+                    <Card className="border-primary/10 bg-background/88 shadow-lg supports-backdrop-filter:backdrop-blur">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Layer controls</CardTitle>
+                        <CardDescription>Organized by map context, overlays, and quick presets.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-4">
+                        {layerGroups.map((group, index) => {
+                          const groupLayers = group.layers.filter((layer) => availableLayers.includes(layer))
+                          if (!groupLayers.length) return null
+
+                          return (
+                            <div key={group.title} className="space-y-2">
+                              <div>
+                                <div className="text-sm font-medium">{group.title}</div>
+                                <div className="text-xs text-muted-foreground">{group.description}</div>
+                              </div>
+                              <ToggleGroup
+                                value={visibleLayers}
+                                onValueChange={(value) => setVisibleLayers((value as GeoLayerId[]) ?? [])}
+                                multiple
+                                orientation="vertical"
+                                spacing={1}
+                                className="w-full items-stretch"
+                              >
+                                {groupLayers.map((layerId) => (
+                                  <Tooltip key={layerId}>
+                                    <TooltipTrigger render={<div className="w-full" />}>
+                                      <ToggleGroupItem value={layerId} variant="outline" className="w-full justify-between">
+                                        <span>{layerLabels[layerId].title}</span>
+                                        <Badge variant="outline">{group.title === 'Overlays' ? 'Overlay' : 'Base'}</Badge>
+                                      </ToggleGroupItem>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="max-w-56">
+                                      {layerLabels[layerId].description}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ))}
+                              </ToggleGroup>
+                              {index < layerGroups.length - 1 ? <Separator /> : null}
+                            </div>
+                          )
+                        })}
+                        <div className="space-y-2">
+                          <div>
+                            <div className="text-sm font-medium">Quick presets</div>
+                            <div className="text-xs text-muted-foreground">
+                              One-tap views for operational review, heat investigation, or scope-only focus.
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            <Button variant="outline" className="justify-between" onClick={() => applyPreset('operational')}>
+                              Operational
+                              <span className="text-xs text-muted-foreground">{presetLabels.operational.join(' + ')}</span>
+                            </Button>
+                            <Button variant="outline" className="justify-between" onClick={() => applyPreset('heatFocus')}>
+                              Heat focus
+                              <span className="text-xs text-muted-foreground">{presetLabels.heatFocus.join(' + ')}</span>
+                            </Button>
+                            <Button variant="outline" className="justify-between" onClick={() => applyPreset('scopeOnly')}>
+                              Scope only
+                              <span className="text-xs text-muted-foreground">{presetLabels.scopeOnly.join(' + ')}</span>
+                            </Button>
+                          </div>
+                        </div>
+                        <Separator />
+                        <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                          <div className="rounded-xl border bg-muted/20 p-3">
+                            <div className="font-medium text-foreground">Default view</div>
+                            <div className="mt-1 leading-5">CHO2 scope stays visible and CHO heatmap loads on by default.</div>
+                          </div>
+                          <div className="rounded-xl border bg-muted/20 p-3">
+                            <div className="font-medium text-foreground">Interaction</div>
+                            <div className="mt-1 leading-5">Hover to inspect, click to lock the barangay snapshot.</div>
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-dashed bg-muted/15 p-3 text-xs text-muted-foreground">
+                          <Badge variant="secondary" className="mb-2">Mock heat data</Badge>
+                          <div className="leading-5">Heat intensity is seeded from the CHO2 mock case load for testing while backend GIS data is still pending.</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             </CardContent>
           </Card>
 
           {!isMobile ? (
-            <Card className="h-[70svh] min-h-[540px] overflow-hidden border-primary/10">
+            <Card className={`${mapViewportHeightClass} overflow-hidden border-primary/10`}>
               <CardHeader className="border-b bg-muted/20">
                 <CardTitle>Barangay snapshot</CardTitle>
                 <CardDescription>Focused operational context for the currently selected polygon.</CardDescription>
               </CardHeader>
-              <CardContent className="h-[calc(70svh-5.25rem)] overflow-y-auto p-5">
+              <CardContent className="h-[calc(100%-5.25rem)] overflow-y-auto p-5">
                 <DetailPanel roleView={roleView} snapshot={selectedSnapshot} />
               </CardContent>
             </Card>
           ) : null}
-        </div>
 
         {isMobile ? (
           <Drawer open={Boolean(selectedSnapshot)} onOpenChange={(open) => (!open ? setSelectedCode(null) : null)}>

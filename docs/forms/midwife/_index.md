@@ -2,20 +2,20 @@
 
 ## Role Overview
 
-The **Rural Health Midwife (RHM)** is the primary clinical officer at each of the 32 Barangay Health Stations (BHS) under CHO II, Dasmarinas City. The Midwife operates on both **PWA (mobile)** and **Web** interfaces.
+The Rural Health Midwife (RHM) is the primary clinical manager at the Barangay Health Station (BHS) level. She operates on both **PWA** (field visits, some mobile data entry) and **Web** (desktop for validation, TCL management, reporting).
 
-**Scope:** Own BHS — all patients, households, and records scoped to `health_station_id`.
+**Primary responsibilities:**
+- Reviews and validates BHW-submitted ITR records (Digital Validation Gate)
+- Maintains Target Client Lists (TCLs) for all health programs
+- Manages the NTP Registry for TB cases
+- Processes quarterly HH Profiles from BHWs into Master Lists
+- Generates end-of-month Summary Tables (ST), M1, and M2 reports
+- Submits reports to the PHN by the Monday of the 1st week of the succeeding month
+- Directly records maternal care encounters (ANC, delivery, postpartum)
+- Registers new TB cases and monitors treatment progress
+- Co-administers NCD PhilPEN assessments with BHWs
 
-**Primary responsibilities in Project LINK:**
-
-1. **Quarterly HH Profile processing** — receives BHW-submitted household profiles, reviews completeness, updates Master Lists for each target client group.
-2. **Daily validation** — reviews all BHW-submitted ITR entries through a validation queue; approves (`VALIDATED`) or returns (`RETURNED`) with reason.
-3. **TCL management** — maintains 4 Target Client Lists (Maternal, Child Part 1, Child Part 2, NCD) and 1 Registry (NTP) as population-level service tracking grids.
-4. **TB case management** — registers new TB cases, reviews weekly DOTS logs, manages treatment phase transitions, records treatment outcomes.
-5. **PIDSR disease case entry** — logs notifiable disease cases for Category I/II/III surveillance.
-6. **End-of-month reporting** — generates Summary Table (ST), M1 (service coverage), and M2 (morbidity) reports from validated data, then submits to PHN.
-
-The Midwife is the **Digital Validation Gate** — no BHW-entered record can appear in any TCL, ST, or report until the Midwife approves it.
+**Scope:** All patients within the assigned `health_station_id`. Cannot see records from other BHS (enforced by RLS).
 
 ---
 
@@ -23,82 +23,72 @@ The Midwife is the **Digital Validation Gate** — no BHW-entered record can app
 
 | Form Name | Category | FHSIS Reference | File |
 |:----------|:---------|:----------------|:-----|
-| Validation Queue | Workflow / Admin | N/A (Project LINK digital gate) | [validation_queue.md](validation_queue.md) |
-| HH Profile Review & Master Lists | Admin / Registry | FHSIS MOP 2018, Chapter 3 | [hh_profile_review.md](hh_profile_review.md) |
-| Maternal Care TCL | TCL | FHSIS MOP 2018, Chapter 4.2 | [maternal_care_tcl.md](maternal_care_tcl.md) |
-| Child Care TCL Part 1 (0–11 months) | TCL | FHSIS MOP 2018, Chapter 4.3 | [child_care_tcl_part1.md](child_care_tcl_part1.md) |
-| Child Care TCL Part 2 (12–59 months) | TCL | FHSIS MOP 2018, Chapter 4.3 | [child_care_tcl_part2.md](child_care_tcl_part2.md) |
-| NCD TCL Part 1 (Adults 20+) | TCL | FHSIS MOP 2018, Chapter 6 | [ncd_tcl.md](ncd_tcl.md) |
-| NTP Registry (TB Cases) | Registry | FHSIS MOP 2018, Chapter 5 (Group B — TB) | [ntp_registry.md](ntp_registry.md) |
-| PIDSR Disease Log | Registry | FHSIS MOP 2018, Chapter 8.1 | [pidsr_disease_log.md](pidsr_disease_log.md) |
-| Summary Table (ST) | Report | FHSIS MOP 2018, Chapter 2 (Table 2) + Chapters 4–6 | [summary_table.md](summary_table.md) |
-| M1 Report — Monthly Service Coverage | Report | FHSIS MOP 2018, Chapter 2 | [m1_report.md](m1_report.md) |
-| M2 Report — Monthly Morbidity & F1 Plus | Report | FHSIS MOP 2018, Chapters 8.1, 8.extra | [m2_report.md](m2_report.md) |
+| Validation Queue | Admin / Workflow | FHSIS MOP 2018, Ch. 2 (Roles & Responsibilities) | [validation_queue.md](validation_queue.md) |
+| HH Profile Review & Master List | Admin / Registry | FHSIS MOP 2018, Ch. 3 — Profiling of Households | [hh_profile_review.md](hh_profile_review.md) |
+| Maternal Care TCL | TCL / Registry | FHSIS MOP 2018, Ch. 4.2 — Maternal Care | [maternal_care_tcl.md](maternal_care_tcl.md) |
+| Child Care TCL Part 1 (0-11 months) | TCL / Registry | FHSIS MOP 2018, Ch. 4.3 — Child Care | [child_care_tcl_part1.md](child_care_tcl_part1.md) |
+| Child Care TCL Part 2 (12-59 months) | TCL / Registry | FHSIS MOP 2018, Ch. 4.3 — Child Care | [child_care_tcl_part2.md](child_care_tcl_part2.md) |
+| NCD TCL (Adults 20+) | TCL / Registry | FHSIS MOP 2018, Ch. 6 — NCD Prevention | [ncd_tcl.md](ncd_tcl.md) |
+| NTP Registry (TB Cases) | Registry | FHSIS MOP 2018, Ch. 5 — Infectious Disease; ITIS | [ntp_registry.md](ntp_registry.md) |
+| TB Case Registration | Entry | FHSIS MOP 2018, Ch. 5; NTP Protocol | [tb_case_registration.md](tb_case_registration.md) |
+| Summary Table (ST) | Report | FHSIS MOP 2018, Ch. 2 & 4-6 (all program clusters) | [summary_table.md](summary_table.md) |
+| M1 Monthly Report | Report | FHSIS MOP 2018, Ch. 2 — M1 Report Form | [m1_report.md](m1_report.md) |
+| M2 Monthly Morbidity Report | Report | FHSIS MOP 2018, Ch. 8.1 — Morbidity Data | [m2_report.md](m2_report.md) |
 
 ---
 
 ## Cross-Role Form Dependencies
 
-| Direction | Form / Data | From Role | To Role | Status Transition |
-|:----------|:------------|:----------|:--------|:------------------|
-| **Inbound** | ITR encounter records | BHW | Midwife | `PENDING_VALIDATION` → `VALIDATED` or `RETURNED` |
-| **Inbound** | HH Profile submissions | BHW | Midwife | Administrative intake (no clinical status) |
-| **Inbound** | Daily DOTS observation logs | BHW | Midwife | Midwife reviews weekly; no status change on DOTS log itself |
-| **Outbound** | VALIDATED records | Midwife | TCL / ST engine | Auto-populated into TCL rows; aggregated into ST |
-| **Outbound** | RETURNED records + reason | Midwife | BHW | BHW corrects and resubmits → `PENDING_VALIDATION` again |
-| **Outbound** | Summary Table (ST) | Midwife | PHN | ST status → `SUBMITTED`; locked for audit |
-| **Outbound** | M1 Report | Midwife | PHN | Transmitted with ST |
-| **Outbound** | M2 Report | Midwife | PHN | Transmitted with ST |
-| **Outbound** | PIDSR disease cases (Category I) | Midwife | DSO | Triggers real-time WebSocket alert (RA 11332) |
-| **Outbound** | NTP Registry data | Midwife | ITIS (external) | Minimum FHSIS indicators (CNR, TSR) extracted into ST |
+| Direction | Form / Record | From Role | To Role | Status Transition |
+|:----------|:--------------|:----------|:--------|:------------------|
+| **Receives** | ITR encounter records | BHW | Midwife | `PENDING_VALIDATION` → `VALIDATED` or `RETURNED` |
+| **Receives** | HH Profile submissions | BHW | Midwife | BHW submits quarterly; Midwife reviews and builds Master Lists |
+| **Receives** | Daily DOTS observation logs | BHW | Midwife | Midwife reviews weekly for missed doses |
+| **Sends** | Returned records (with reason) | Midwife | BHW | `RETURNED` — BHW must correct and resubmit |
+| **Sends** | ST + M1 + M2 reports | Midwife | PHN | `SUBMITTED` — locked for audit after submission |
+| **Sends** | TB case referrals | Midwife | MHO/Doctor | For diagnosis confirmation |
+| **Sends** | Cervical cancer positive referrals | Midwife | Doctor (RHU) | Mandatory referral for positive VIA/Pap |
 
 ---
 
 ## FHSIS Compliance Notes
 
-### DOH DM 2024-0007
-
-- All FHSIS indicator codes, field names, and M1/M2 formulas must match the DOH standard exactly. No renaming or abbreviating.
-- Indicator disaggregation is mandatory: by **sex**, by **NHTS / Non-NHTS** status, and by **age group** where specified.
+### DOH DM 2024-0007 Requirements
+- All FHSIS indicator codes, field names, and M1/M2 formulas must match the DOH standard exactly. Do not rename or abbreviate indicator labels.
+- NHTS disaggregation is mandatory on all indicators: every TCL row and every ST column must separate `NHTS` from `Non-NHTS`.
+- Age-group disaggregation for maternal care: `10-14`, `15-19`, `20-49`.
+- Sex disaggregation for child care and NCD indicators.
 
 ### NHTS Disaggregation
-
-- Every patient record must carry `nhts_status` (`NHTS` / `Non-NHTS`), captured once at registration and propagated to all records.
-- All Summary Table and M1/M2 columns that require NHTS disaggregation must split NHTS vs Non-NHTS counts.
+Every TCL and Summary Table must provide separate counts for NHTS and Non-NHTS clients. The `nhts_status` field on the patient record is the source.
 
 ### Mandatory vs Optional Indicators
-
-- **Mandatory monthly:** All Tier 1 program indicators (Maternal, Child, NCD, TB minimum).
-- **Mandatory monthly (separate):** M2 morbidity diseases, M2 F1 Plus indicators.
-- **Quarterly (Q1):** Compiled by PHN from monthly STs — Midwife does not generate Q1 directly.
-- **Annual (A1):** Generated at CHO level — Midwife does not generate A1.
+All indicators listed in FHSIS MOP 2018 Table 1 are mandatory. There are no optional FHSIS indicators — coverage of all program clusters (Family Health, Infectious Disease, NCD, Environmental Health) is required for Level 2 completeness.
 
 ### Reporting Periods
+- **Monthly:** ST, M1 (program accomplishment), M2 Section A (morbidity)
+- **Quarterly:** Q1 (compiled by PHN from M1 data — Midwife does not generate Q1 directly)
+- **Annual:** A1 (compiled at PHN/PHIS level)
 
-- **ST + M1 + M2 deadline:** Monday of the 1st week of the succeeding month (BHS → RHU/MHC).
-- **Quarterly:** RHU/MHC → P/CHO (compiled by PHN).
-- **Annual:** P/CHO → DOH-CHD (compiled by PHIS Coordinator).
+### Submission Deadlines
+- BHS to RHU/MHC (Midwife → PHN): **Monday of the 1st week of the succeeding month**
 
 ---
 
 ## Open Questions / Ambiguities
 
-1. **Family Planning (FP):** FP services (Chapter 4.1) are excluded from the Tier 1 scope of Project LINK. Confirm with CHO II whether FP indicators should be tracked or remain out of scope.
+1. **Family Planning TCL:** The midwife userflow does not explicitly list an FP TCL, but FHSIS MOP Ch. 4.1 defines one. Clarify with CHO II whether FP TCL management is within the midwife's scope or handled differently in Dasmarinas City.
 
-2. **Oral Health (Chapter 4.4):** Oral health is tracked quarterly at RHU level by dentists. Confirm whether Midwife needs any oral health referral tracking.
+2. **Oral Health TCL:** FHSIS MOP Ch. 4.4 defines oral health indicators and a TCL, but oral health is typically dentist-managed at RHU level. Clarify if midwives in CHO II track any oral health indicators.
 
-3. **Environmental Health (Chapter 7):** Environmental health indicators (water, sanitation) are tracked by the Sanitary Inspector. Confirm whether Midwife interacts with these at all.
+3. **Environmental Health:** Ch. 7 indicators (water supply, sanitation) are typically handled by the Sanitary Inspector. Confirm these are excluded from the midwife's reporting scope.
 
-4. **PIDSR Disease Log — Category I immediacy:** RA 11332 mandates that Category I disease alerts fire a WebSocket broadcast **before** the API returns 201. Confirm whether the Midwife or DSO is the primary entry point for PIDSR cases. The userflow shows PIDSR under the Midwife nav, but the DSO userflow shows the DSO receiving alerts.
+4. **M2 Section B (F1 Plus Indicators):** The additional monthly report on maternal deaths, infant deaths, and facility-based deliveries. Clarify if this is a separate form the midwife fills or if it's auto-generated from ST data.
 
-5. **Cervical/Breast Cancer Screening (CASDT):** The NCD form includes cervical and breast screening fields. Confirm whether the Midwife (trained in VIA) performs cervical screening directly, or only the Doctor at RHU level handles CASDT Form 1.
+5. **Cervical Cancer Screening (VIA):** The NCD form spec says midwives trained in VIA can administer it. Confirm which midwives in CHO II are VIA-certified and whether this is a universal midwife responsibility.
 
-6. **Master List auto-population:** Confirm whether Master Lists should be auto-populated from HH Profile member data (age/sex/classification code matching), or whether the Midwife manually selects which members to add to each Master List.
+6. **Deworming for WRA:** FHSIS FP chapter (Ch. 4.1) includes deworming for Women of Reproductive Age as an FP indicator. Clarify if the midwife tracks this separately from maternal deworming.
 
-7. **ST lock behavior:** After the Midwife submits the ST, it is locked for audit. Confirm whether there is any mechanism for the PHN to "return" a submitted ST for correction (similar to the BHW → Midwife validation flow).
+7. **Master List granularity:** The FHSIS MOP describes separate Master Lists per program (WRA, Pregnant Women, Under-5, Adults 20+, Senior Citizens). Clarify if Project LINK should implement these as separate list views or as filtered views of a single patient registry.
 
-8. **M2 F1 Plus indicators:** The F1 Plus form (M2 Sections B and C) includes maternal deaths and infant deaths. Confirm the death reporting workflow — does the Midwife record deaths directly, or are they sourced from the Health Facility Death Registry?
-
-9. **Sputum examination scheduling:** TB monitoring requires sputum exams at Month 2 and Month 5. Confirm whether the system should auto-schedule these and send reminders, or whether the Midwife manages this manually.
-
-10. **Multi-BHS Midwife:** Some midwives may cover more than one BHS. Confirm whether `health_station_id` is always a single assignment or can be an array.
+8. **Disease Log for M2:** The midwife generates the M2 from a "PIDSR Disease Log." Clarify the source data — is this a separate disease case entry form, or are disease cases extracted from encounter diagnoses?

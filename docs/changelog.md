@@ -58,3 +58,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `types/database.ts` — replaced scaffold with `UserRole`, `UserProfile`, and `RecordStatus` types
 - `index.css` — removed Vite scaffold `#root` constraints; layout now fills viewport with `min-height: 100svh`
 - `components/ui/button.tsx` — patched for `@base-ui/react` render prop polymorphism (Phase 1 required `render` prop support)
+
+
+**GIS Intelligence Page MVP (frontend-only spike, 2026-03-29)**
+- Shared GIS feature module added in `frontend/src/features/intelligence/` with one reusable `IntelligenceMapPage`, role-aware view modes (`phn`, `dso`, `cho`), typed GIS contracts, and local fixture loaders
+- Local frontend GeoJSON boundaries added: `frontend/src/features/intelligence/data/dasmarinas-boundaries.geojson` and `frontend/src/features/intelligence/data/cho2-boundaries.geojson`
+- Mock disease heat overlay fixture added to support frontend interactions without backend/PostGIS wiring
+- Explicit routes mounted to the shared page: `/phn/intelligence/map`, `/dso/intelligence/map`, `/cho/intelligence/map`
+- `mapcn` map component integrated (`frontend/src/components/ui/map.tsx`) and used with shadcn UI controls (`Card`, `ToggleGroup`, `Badge`, `Tooltip`, `Sheet`, `Drawer`, `Alert`, `Skeleton`)
+- GIS fixture tests added in `frontend/src/features/intelligence/fixtures.test.ts`
+
+**GIS-related changes (2026-03-29)**
+- `frontend/package.json` updated with GIS dependencies: `maplibre-gl`, `@types/geojson`, and `@turf/bbox`
+- `frontend/src/app/router.tsx` updated so intelligence map routes resolve to explicit role pages instead of placeholder behavior
+- `frontend/src/index.css` updated with `mapcn`/MapLibre popup and attribution style support
+
+**Validation Notes (2026-03-29)**
+- Frontend checks passed for GIS MVP implementation: `npm run lint`, `npm run build`, and `npx vitest run src/features/intelligence/fixtures.test.ts`
+- Browser-driven Playwright validation was run against GIS routes (`/phn/intelligence/map`, `/dso/intelligence/map`, `/cho/intelligence/map`) and confirmed render + role-mode behavior
+- Open issues captured during validation: MapLibre style/projection runtime console error, nested button markup in GIS layer controls (`TooltipTrigger` wrapping `ToggleGroupItem`), existing breadcrumb nested list-item warning, and mobile drawer interaction needing follow-up validation
+
+**GIS UI refinement pass (2026-03-29)**
+- Removed the Disease Map banner card to prioritize map workspace and reduce vertical clutter.
+- Reworked desktop layout to a horizontal 80/20 split (`map/snapshot`) using responsive grid behavior, while keeping mobile map-first behavior.
+- Converted layer controls into a collapsible panel with a compact edge toggle so overlays do not permanently occupy map space.
+- Simplified disease visualization to a pure heatmap gradient by removing the extra point-circle layer.
+- Added a basemap provider toggle (`Carto` <-> `MapTiler`) in map controls with local persistence via `localStorage` key `gis-map-provider`.
+- Updated map style resolution to support provider-based style selection and safe fallback behavior when `VITE_MAPTILER_API_KEY` is unavailable.
+- Frontend build re-validated after refinements with `npm run build`.
+
+

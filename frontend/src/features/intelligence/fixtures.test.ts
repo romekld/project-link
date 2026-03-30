@@ -85,10 +85,19 @@ describe('buildIntelligenceFixtures', () => {
 
     expect(fixtures.dasmarinas.features).toHaveLength(2)
     expect(fixtures.cho2.features).toHaveLength(1)
-    expect(fixtures.diseaseHeat.features).toHaveLength(1)
+    expect(fixtures.diseaseHeat.features.length).toBeGreaterThan(1)
+    expect(fixtures.diseaseHeat.features.every((feature) => feature.properties.barangayCode === 'ALPHA')).toBe(true)
     expect(fixtures.snapshots.ALPHA?.inCho2Scope).toBe(true)
     expect(fixtures.snapshots.BETA?.inCho2Scope).toBe(false)
     expect(fixtures.initialBounds[0][0]).toBeLessThan(fixtures.initialBounds[1][0])
+  })
+
+  it('builds deterministic heat points for CHO2-scoped barangays', () => {
+    const first = buildIntelligenceFixtures(sampleCollection, cho2Collection)
+    const second = buildIntelligenceFixtures(sampleCollection, cho2Collection)
+
+    expect(first.diseaseHeat.features).toEqual(second.diseaseHeat.features)
+    expect(first.diseaseHeat.features[0]?.properties.totalCases).toBe(first.snapshots.ALPHA?.totalCases)
   })
 })
 

@@ -17,7 +17,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
+import { X, Minus, Plus, Locate, Maximize, Loader2, Layers } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -114,6 +114,39 @@ type MapStyleOption = string | MapLibreGL.StyleSpecification;
 
 type MapRef = MapLibreGL.Map;
 
+function withProjectionFallback(style: MapLibreGL.StyleSpecification) {
+  if (style.projection) {
+    return style;
+  }
+
+  return {
+    ...style,
+    projection: { type: "mercator" },
+  };
+}
+
+async function normalizeMapStyle(style: MapStyleOption) {
+  if (typeof style !== "string") {
+    return withProjectionFallback(style);
+  }
+
+  try {
+    const response = await fetch(style);
+    if (!response.ok) {
+      return style;
+    }
+
+    const payload = (await response.json()) as MapLibreGL.StyleSpecification;
+    return withProjectionFallback(payload);
+  } catch {
+    return style;
+  }
+}
+
+function getStyleIdentity(style: MapStyleOption) {
+  return typeof style === "string" ? style : JSON.stringify(style);
+}
+
 type MapProps = {
   children?: ReactNode;
   /** Additional CSS classes for the map container */
@@ -185,7 +218,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   const [mapInstance, setMapInstance] = useState<MapLibreGL.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
-  const currentStyleRef = useRef<MapStyleOption | null>(null);
+  const currentStyleIdentityRef = useRef<string | null>(null);
   const styleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const internalUpdateRef = useRef(false);
   const resolvedTheme = useResolvedTheme(themeProp);
@@ -217,52 +250,58 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const initialStyle =
-      resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
-    currentStyleRef.current = initialStyle;
+    let cancelled = false;
+    let map: MapLibreGL.Map | null = null;
 
-    const map = new MapLibreGL.Map({
-      container: containerRef.current,
-      style: initialStyle,
-      renderWorldCopies: false,
-      attributionControl: {
-        compact: true,
-      },
-      ...props,
-      ...viewport,
-    });
+    void (async () => {
+      const initialStyle =
+        resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
+      currentStyleIdentityRef.current = getStyleIdentity(initialStyle);
+      const normalizedInitialStyle = await normalizeMapStyle(initialStyle);
 
-    const styleDataHandler = () => {
-      clearStyleTimeout();
-      // Delay to ensure style is fully processed before allowing layer operations
-      // This is a workaround to avoid race conditions with the style loading
-      // else we have to force update every layer on setStyle change
-      styleTimeoutRef.current = setTimeout(() => {
-        setIsStyleLoaded(true);
-        if (projection) {
-          map.setProjection(projection);
-        }
-      }, 100);
-    };
-    const loadHandler = () => setIsLoaded(true);
+      if (cancelled || !containerRef.current) return;
 
-    // Viewport change handler - skip if triggered by internal update
-    const handleMove = () => {
-      if (internalUpdateRef.current) return;
-      onViewportChangeRef.current?.(getViewport(map));
-    };
+      map = new MapLibreGL.Map({
+        container: containerRef.current,
+        style: normalizedInitialStyle,
+        renderWorldCopies: false,
+        attributionControl: {
+          compact: true,
+        },
+        ...props,
+        ...viewport,
+      });
 
-    map.on("load", loadHandler);
-    map.on("styledata", styleDataHandler);
-    map.on("move", handleMove);
-    setMapInstance(map);
+      const styleDataHandler = () => {
+        clearStyleTimeout();
+        // Delay to ensure style is fully processed before allowing layer operations
+        // This is a workaround to avoid race conditions with the style loading
+        // else we have to force update every layer on setStyle change
+        styleTimeoutRef.current = setTimeout(() => {
+          setIsStyleLoaded(true);
+          if (projection) {
+            map?.setProjection(projection);
+          }
+        }, 100);
+      };
+      const loadHandler = () => setIsLoaded(true);
+
+      // Viewport change handler - skip if triggered by internal update
+      const handleMove = () => {
+        if (!map || internalUpdateRef.current) return;
+        onViewportChangeRef.current?.(getViewport(map));
+      };
+
+      map.on("load", loadHandler);
+      map.on("styledata", styleDataHandler);
+      map.on("move", handleMove);
+      setMapInstance(map);
+    })();
 
     return () => {
+      cancelled = true;
       clearStyleTimeout();
-      map.off("load", loadHandler);
-      map.off("styledata", styleDataHandler);
-      map.off("move", handleMove);
-      map.remove();
+      map?.remove();
       setIsLoaded(false);
       setIsStyleLoaded(false);
       setMapInstance(null);
@@ -304,14 +343,26 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
 
     const newStyle =
       resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
+    const nextStyleIdentity = getStyleIdentity(newStyle);
 
-    if (currentStyleRef.current === newStyle) return;
+    if (currentStyleIdentityRef.current === nextStyleIdentity) return;
 
     clearStyleTimeout();
-    currentStyleRef.current = newStyle;
+    currentStyleIdentityRef.current = nextStyleIdentity;
     setIsStyleLoaded(false);
 
-    mapInstance.setStyle(newStyle, { diff: true });
+    let cancelled = false;
+
+    void (async () => {
+      const normalizedStyle = await normalizeMapStyle(newStyle);
+      if (cancelled) return;
+
+      mapInstance.setStyle(normalizedStyle, { diff: false });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [mapInstance, resolvedTheme, mapStyles, clearStyleTimeout]);
 
   const contextValue = useMemo(
@@ -721,6 +772,12 @@ type MapControlsProps = {
   showLocate?: boolean;
   /** Show fullscreen toggle button (default: false) */
   showFullscreen?: boolean;
+  /** Show map provider toggle (Carto/MapTiler) */
+  showProviderToggle?: boolean;
+  /** Current map provider ('carto' or 'maptiler') */
+  mapProvider?: 'carto' | 'maptiler';
+  /** Callback when provider is toggled */
+  onProviderChange?: (provider: 'carto' | 'maptiler') => void;
   /** Additional CSS classes for the controls container */
   className?: string;
   /** Callback with user coordinates when located */
@@ -747,11 +804,13 @@ function ControlButton({
   label,
   children,
   disabled = false,
+  className,
 }: {
   onClick: () => void;
   label: string;
   children: React.ReactNode;
   disabled?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -759,8 +818,9 @@ function ControlButton({
       aria-label={label}
       type="button"
       className={cn(
-        "hover:bg-accent dark:hover:bg-accent/40 flex size-8 items-center justify-center transition-colors",
+        "hover:bg-accent dark:hover:bg-accent/40 flex min-h-8 min-w-8 items-center justify-center gap-1.5 px-2 transition-colors",
         disabled && "pointer-events-none cursor-not-allowed opacity-50",
+        className,
       )}
       disabled={disabled}
     >
@@ -775,6 +835,9 @@ function MapControls({
   showCompass = false,
   showLocate = false,
   showFullscreen = false,
+  showProviderToggle = false,
+  mapProvider = 'carto',
+  onProviderChange,
   className,
   onLocate,
 }: MapControlsProps) {
@@ -828,6 +891,11 @@ function MapControls({
     }
   }, [map]);
 
+  const handleProviderToggle = useCallback(() => {
+    const newProvider = mapProvider === 'carto' ? 'maptiler' : 'carto';
+    onProviderChange?.(newProvider);
+  }, [mapProvider, onProviderChange]);
+
   return (
     <div
       className={cn(
@@ -870,6 +938,20 @@ function MapControls({
         <ControlGroup>
           <ControlButton onClick={handleFullscreen} label="Toggle fullscreen">
             <Maximize className="size-4" />
+          </ControlButton>
+        </ControlGroup>
+      )}
+      {showProviderToggle && (
+        <ControlGroup>
+          <ControlButton
+            onClick={handleProviderToggle}
+            label={`Switch to ${mapProvider === 'carto' ? 'MapTiler' : 'Carto'}`}
+            className="min-w-24 justify-start"
+          >
+            <Layers className="size-4" />
+            <span className="text-xs font-medium uppercase tracking-[0.18em]">
+              {mapProvider === 'carto' ? 'Carto' : 'MapTiler'}
+            </span>
           </ControlButton>
         </ControlGroup>
       )}

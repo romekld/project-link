@@ -1,143 +1,120 @@
-# Maternal Care TCL — Target Client List
+# Maternal Care TCL — TCL / Registry
 
 **Role:** Midwife (RHM)
-**Purpose:** Track all active pregnancy and postpartum records within the BHS across the full maternal care continuum: prenatal (ANC), intrapartum (delivery), and postpartum care. Pre-populated from the Master List of Pregnant & Postpartum Women.
-**FHSIS Reference:** FHSIS MOP 2018, Chapter 4.2 — Maternal Care and Services (PDF pages 115–182, doc pages 101–168)
-**Who fills it:** BHW (field visits, initial ANC data capture) → Midwife (validation, clinical assessment, delivery recording, postpartum care).
-**Who reviews/approves it:** Midwife validates BHW entries; PHN reviews aggregated ST.
-**Frequency:** Updated per visit; tallied monthly for ST generation.
-**Storage location:** `maternal_records` (one row per pregnancy), `anc_visits` (child table per check-up), `encounters` (per visit).
+**Purpose:** Target Client List for all active pregnancy records and postpartum cases in the BHS. Serves as the live registry for tracking prenatal, intrapartum, and postpartum services for every pregnant woman in the catchment area. The TCL is the primary data source for the maternal section of the Summary Table.
+**FHSIS Reference:** FHSIS MOP 2018, Chapter 4.2 — Maternal Care and Services (PDF pages 115-182). TCL layout defined in the recording and consolidation sections.
+**Who fills it:** Auto-populated from validated maternal ITR records. Midwife enters maternal encounters directly; BHW-submitted records feed in after validation.
+**Who reviews/approves it:** Midwife manages the TCL; PHN reviews during MCT consolidation.
+**Frequency:** Updated continuously as encounters are validated. Reviewed end-of-month for ST generation.
+**Storage location:** `maternal_records` table (one row per pregnancy), `anc_visits` child table, plus computed TCL view
 
 ---
 
 ## Required Fields
 
-### Name Column (Pre-populated from Master List)
+Each row in the Maternal Care TCL represents one pregnancy episode.
+
+### Patient Identity Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Patient Name** | String | From `patients` table | Last, First, Middle |
-| **Patient ID** | String | Format: `{BHS_CODE}-{YYYY}-{NNNN}` | Link to patient ITR |
-| **Family Serial Number** | String | FK to `households` | Links to HH Profile |
-| **NHTS Status** | Enum | `NHTS` / `Non-NHTS` | FHSIS disaggregation |
-| **Age Group** | Enum | `10–14`, `15–19`, `20–49` | FHSIS age-disaggregated reporting |
+| `patient_id` | UUID | FK to `patients`. Required. | Unified patient identifier |
+| `patient_last_name` | String | From `patients` table | Display only |
+| `patient_first_name` | String | From `patients` table | Display only |
+| `family_serial_number` | String | FK to `households` | Links to HH Profile |
+| `date_of_birth` | Date | From `patients` table | For age group computation |
+| `age_group` | Enum | Auto-computed from DOB. `10-14`, `15-19`, `20-49` | FHSIS age-disaggregated reporting |
+| `nhts_status` | Enum | `NHTS` / `Non-NHTS`. From `patients` table. | FHSIS disaggregation |
+| `health_station_id` | UUID | FK to `health_stations` | RLS scope |
 
-### Obstetric History
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **LMP** | Date | Required. Must be within last 10 months. Inline validation: "LMP must be within the last 10 months" | Basis for AOG and EDC |
-| **EDC** | Date | Auto-calculated from LMP. **Never editable.** Inline: "EDC is auto-calculated — do not edit directly" | Naegele's rule |
-| **Gravida** | Integer | ≥1. Total pregnancies including current | |
-| **Parity** | Integer | ≥0. Total previous deliveries | |
-| **G-P Notation** | String (computed) | Auto-formatted: `G{n}-P{n}` | Display only |
-| **AOG at First Visit** | Integer (weeks, computed) | Auto-calculated from LMP + first visit date. Risk flag if >12 weeks | |
-
-### Prenatal Check-ups (ANC Visits 1–8+)
+### Prenatal Care Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Visit Date** | Date | Must be after LMP and before EDC + 2 weeks | Per visit |
-| **Trimester** | Enum (computed) | `1st` (≤12w6d), `2nd` (13w–27w6d), `3rd` (≥28w) | Auto from AOG at visit |
-| **AOG at Visit** | Integer (weeks, computed) | Auto from LMP + visit date | |
-| **BP — Systolic** | Integer (mmHg) | 60–250. High-risk flag: ≥140 | Inline: "Systolic BP must be 60–250 mmHg" |
-| **BP — Diastolic** | Integer (mmHg) | 40–150. High-risk flag: ≥90 | |
-| **Weight** | Decimal (kg) | 30–200 kg | |
-| **Total ANC Count** | Integer (computed) | Auto-counted from visits. Flag if <4 at delivery | FHSIS indicator |
-| **≥4 ANC Achieved** | Boolean (computed) | True if total visits ≥4, distributed per trimester requirement | |
+| `date_of_registration` | Date | First ANC visit date | |
+| `lmp_date` | Date | Last Menstrual Period. Required. | Basis for AOG and EDC |
+| `edc` | Date | Auto-calculated: LMP + 280 days (Naegele's rule). Read-only. | Expected Date of Confinement |
+| `gravida` | Integer | Total pregnancies including current | |
+| `parity` | Integer | Total previous deliveries | |
+| `aog_at_first_visit` | Integer (weeks) | Auto-computed from LMP and first visit date | Risk flag if >12 weeks |
+| `anc_visit_count` | Integer | Auto-counted from `anc_visits` child records | |
+| `anc_4_plus_achieved` | Boolean | Computed: `anc_visit_count >= 4` | FHSIS indicator |
+| `trimester_1_visit` | Boolean | At least 1 visit at AOG <= 12w6d | |
+| `trimester_2_visit` | Boolean | At least 1 visit at AOG 13-27w6d | |
+| `trimester_3_visits` | Integer | Count of visits at AOG >= 28w. Need >= 2. | |
 
-### Immunization (Td)
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **Td1 Date** | Date | | First dose |
-| **Td2 Date** | Date | ≥4 weeks after Td1 | |
-| **Td3 Date** | Date | ≥6 months after Td2 | |
-| **Td4 Date** | Date | ≥1 year after Td3 | |
-| **Td5 Date** | Date | ≥1 year after Td4 | |
-| **FIM Status** | Boolean (computed) | 1st pregnancy: Td1+Td2; 2nd+: Td2 Plus (≥3 doses) | |
-
-### Micronutrient Supplementation
+### Immunization (Td) Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Iron with Folic Acid — Qty** | Integer (tablets) | Per visit. Complete = 180 tablets over 6 months | |
-| **Iron with Folic Acid — Date** | Date | | |
-| **Calcium Carbonate — Qty** | Integer (tablets) | Per visit | |
-| **Calcium Carbonate — Date** | Date | | |
-| **Iodine Capsule — Qty** | Integer | Per visit | |
-| **Iodine Capsule — Date** | Date | | |
+| `td1_date` | Date | First dose | |
+| `td2_date` | Date | >= 4 weeks after Td1 | |
+| `td3_date` | Date | >= 6 months after Td2 | For 2nd+ pregnancy |
+| `td4_date` | Date | >= 1 year after Td3 | |
+| `td5_date` | Date | >= 1 year after Td4 | |
+| `fim_status` | Boolean | Auto-computed: Td schedule complete for current pregnancy | Fully Immunized Mother |
 
-### Nutritional Assessment (1st Trimester)
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **Weight (1st Tri)** | Decimal (kg) | | |
-| **Height** | Decimal (cm) | | |
-| **BMI** | Decimal (computed) | `weight / (height_m)²`. Never manual override. | |
-| **BMI Classification** | Enum (computed) | `Low` (<18.5), `Normal` (18.5–22.9), `High` (≥23.0) — Asia-Pacific | |
-| **Nutritionally At-Risk** | Boolean (computed) | BMI <18.5 or ≥23.0 | High-risk flag |
-
-### Deworming
+### Micronutrient Supplementation Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Deworming Date** | Date | Preferably 2nd or 3rd trimester | |
-| **Drug Given** | String | e.g., Albendazole | |
+| `ifa_given` | Boolean | Iron with Folic Acid given | FHSIS indicator |
+| `ifa_date` | Date | Date of provision | |
+| `calcium_given` | Boolean | Calcium Carbonate given | FHSIS indicator |
+| `calcium_date` | Date | | |
+| `iodine_given` | Boolean | Iodine capsule given | FHSIS indicator |
+| `iodine_date` | Date | | |
 
-### Infectious Disease Screening
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **Syphilis Screening Date** | Date | | |
-| **Syphilis Result** | Enum | `Positive (+)` / `Negative (−)` / `Pending` | |
-| **Hepatitis B Screening Date** | Date | | |
-| **Hepatitis B Result** | Enum | `Positive (+)` / `Negative (−)` / `Pending` | |
-| **HIV Screening Date** | Date | Result is confidential; track date only | |
-
-### Laboratory Screening
+### Nutritional Assessment Columns (1st Trimester)
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **GDM Screening Date** | Date | | |
-| **GDM Result** | Enum | `Positive (+)` / `Negative (−)` / `Pending` | |
-| **CBC/Hgb Screening Date** | Date | | |
-| **Anemia Result** | Enum | `Positive (+)` / `Negative (−)` / `Pending` | |
+| `bmi_1st_trimester` | Decimal | Auto-calculated from weight and height at 1st trimester visit | |
+| `bmi_classification` | Enum | `Low` (<18.5), `Normal` (18.5-22.9), `High` (>=23.0) | Asia-Pacific standard |
+| `nutritionally_at_risk` | Boolean | BMI <18.5 or >=23.0 | High-risk flag |
 
-### Pregnancy Outcome (Intrapartum)
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **Date Terminated** | Date | Date of delivery or pregnancy end | |
-| **Pregnancy Outcome** | Enum | `FT` (Full Term 37–42w), `PT` (Pre-Term 22–36w), `FD` (Fetal Death), `AM` (Abortion/Miscarriage) | |
-| **Birth Sex** | Enum | `Male` / `Female` | For livebirths only |
-| **Birth Weight** | Decimal (grams) | LBW flag: <2,500g | |
-| **LBW Flag** | Boolean (computed) | Birth weight <2,500g | High-risk |
-| **Birth Attendant** | Enum | `SBA` (Skilled Birth Attendant) / `Non-SBA` | |
-| **Place of Delivery** | Enum | `Health Facility` / `Home` / `Other` | |
-| **Type of Delivery** | Enum | `Vaginal` / `Cesarean Section (CS)` | |
-
-### Postpartum Care
+### Deworming Column
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **PP Check-up 1 Date** | Date | Within 7 days postpartum | |
-| **PP Check-up 2 Date** | Date | Within 7 days postpartum | |
-| **≥2 PP Check-ups** | Boolean (computed) | FHSIS indicator | |
-| **Vitamin A (200,000 IU) Date** | Date | Within 1 month after delivery | |
-| **Iron with Folic Acid 3 months** | Boolean | Given during PP period | |
+| `deworming_date` | Date | Preferably 2nd or 3rd trimester | FHSIS indicator |
 
-### Newborn Assessment
+### Infectious Disease Screening Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Newborn Name** | String | Linked as new patient record | |
-| **Birth Weight (PP confirm)** | Decimal (grams) | Cross-check with intrapartum | |
-| **Newborn PP Check-up 1** | Date | Within 7 days | |
-| **Newborn PP Check-up 2** | Date | Within 7 days | |
-| **Breastfeeding Initiated** | Boolean | Within 90 minutes of birth | |
-| **BCG Given** | Boolean | At birth or within 0–28 days | Cross-ref EPI |
-| **HepB Birth Dose Given** | Boolean | Within 24 hours of birth | Cross-ref EPI |
+| `syphilis_screened` | Boolean | | FHSIS indicator |
+| `syphilis_result` | Enum | `Positive`, `Negative`, `Pending` | |
+| `hepb_screened` | Boolean | | FHSIS indicator |
+| `hepb_result` | Enum | `Positive`, `Negative`, `Pending` | |
+| `hiv_screened` | Boolean | Date tracked; result is confidential | FHSIS indicator (date only) |
+| `cbc_screened` | Boolean | | FHSIS indicator |
+| `anemia_result` | Enum | `Positive`, `Negative`, `Pending` | |
+| `gd_screened` | Boolean | Gestational Diabetes | FHSIS indicator |
+| `gd_result` | Enum | `Positive`, `Negative`, `Pending` | |
+
+### Intrapartum Columns (filled after delivery)
+
+| Field Name | Data Type | Constraints / Validation Rules | Notes |
+|:-----------|:----------|:-------------------------------|:------|
+| `date_terminated` | Date | Date of delivery or pregnancy end | |
+| `pregnancy_outcome` | Enum | `FT` (Full Term), `PT` (Pre-Term), `FD` (Fetal Death), `AM` (Abortion/Miscarriage) | |
+| `birth_sex` | Enum | `Male` / `Female` (livebirths only) | |
+| `birth_weight_grams` | Integer | LBW flag: <2500g | |
+| `lbw_flag` | Boolean | Auto-computed: birth_weight < 2500 | High-risk indicator |
+| `birth_attendant` | Enum | `SBA` / `Non-SBA` | FHSIS indicator |
+| `place_of_delivery` | Enum | `Health Facility` / `Home` / `Other` | FHSIS indicator |
+| `type_of_delivery` | Enum | `Vaginal` / `Cesarean Section` | |
+
+### Postpartum Columns
+
+| Field Name | Data Type | Constraints / Validation Rules | Notes |
+|:-----------|:----------|:-------------------------------|:------|
+| `pp_checkup_1_date` | Date | Within 7 days postpartum | |
+| `pp_checkup_2_date` | Date | Within 7 days postpartum | |
+| `pp_2_achieved` | Boolean | Computed: both PP checkups done | FHSIS indicator |
+| `pp_vitamin_a_date` | Date | Within 1 month after delivery. 200,000 IU. | FHSIS indicator |
+| `pp_ifa_3months` | Boolean | Iron with folic acid given for 3 months PP | FHSIS indicator |
 
 ---
 
@@ -145,75 +122,78 @@
 
 | Field Name | Data Type | Condition for Display | Notes |
 |:-----------|:----------|:----------------------|:------|
-| **Pregnancy Outcome fields** | All | Only after delivery | Hide until pregnancy terminates |
-| **Postpartum fields** | All | Only after livebirth outcome | Hide for FD/AM outcomes |
-| **Newborn Assessment** | All | Only after livebirth outcome | |
-| **Iron for Anemia** | Boolean | Only if `anemia_result = Positive` | |
+| Intrapartum section | Multiple | Only after delivery is recorded | Hidden until pregnancy terminates |
+| Postpartum section | Multiple | Only after delivery with livebirth outcome | Hidden for FD/AM outcomes |
+| `td3_date` through `td5_date` | Date | Only for 2nd+ pregnancy (parity >= 1) | 1st pregnancy requires only Td1+Td2 |
 
 ---
 
 ## Enums / Controlled Vocabularies
 
-- **NHTS Status:** `NHTS`, `Non-NHTS`
-- **Age Group:** `10–14`, `15–19`, `20–49`
-- **BMI Classification:** `Low`, `Normal`, `High`
-- **Pregnancy Outcome:** `FT`, `PT`, `FD`, `AM`
-- **Birth Attendant:** `SBA`, `Non-SBA`
-- **Place of Delivery:** `Health Facility`, `Home`, `Other`
-- **Type of Delivery:** `Vaginal`, `Cesarean Section (CS)`
-- **Screening Results:** `Positive (+)`, `Negative (−)`, `Pending`
-- **Trimester:** `1st`, `2nd`, `3rd`
+| Enum | Values |
+|:-----|:-------|
+| `age_group` | `10-14`, `15-19`, `20-49` |
+| `nhts_status` | `NHTS`, `Non-NHTS` |
+| `bmi_classification` | `Low`, `Normal`, `High` |
+| `pregnancy_outcome` | `FT`, `PT`, `FD`, `AM` |
+| `birth_attendant` | `SBA`, `Non-SBA` |
+| `place_of_delivery` | `Health Facility`, `Home`, `Other` |
+| `type_of_delivery` | `Vaginal`, `Cesarean Section` |
+| `screening_result` | `Positive`, `Negative`, `Pending` |
 
 ---
 
 ## UX / Clinical Safety Concerns
 
-- **EDC is never editable** — auto-calculated from LMP. Display as read-only with tooltip: "EDC is auto-calculated from LMP using Naegele's rule."
-- **BMI auto-computed** — never allow manual override. Recompute from weight + height on every save.
-- **High-risk flags auto-trigger** — BMI at-risk, LBW, adolescent pregnancy (age 10–19), high parity, BP ≥140/90. All trigger `is_high_risk = true` and display persistent badge.
-- **Confirmation gate on high-risk** — any `is_high_risk = true` submission requires explicit confirmation dialog.
-- **Pregnancy-per-record structure** — one `maternal_records` row per pregnancy. ANC visits are nested child records. Not a flat visit list.
-- **Progressive disclosure** — hide intrapartum and postpartum sections until the pregnancy terminates. Show ANC sections first.
-- **Pre-population from patient profile** — NHTS status, age, address auto-filled from patient registration.
-- **Inline validation examples:**
-  - "LMP must be within the last 10 months"
-  - "Systolic BP must be 60–250 mmHg"
-  - "Birth weight must be 500–6,000 grams"
-  - "Td2 must be at least 4 weeks after Td1"
-- **ANC visit timeline visualization** — display as a timeline with trimester markers, showing completed vs remaining visits.
-- **Offline behavior** — ANC forms must auto-save to Dexie.js as drafts. All records start as `PENDING_SYNC`.
+- **EDC is auto-calculated** — display only, never editable. Formula: LMP + 280 days. If LMP is corrected, EDC auto-updates.
+- **AOG risk flag:** If first visit AOG >12 weeks, display warning: "Late first prenatal visit — outside 1st trimester."
+- **High-risk flags:** Persistent badges for: BMI at-risk, adolescent pregnancy (age 10-19), high parity (>=4), LBW delivery. Must survive list pagination.
+- **ANC count tracker:** Visual progress indicator showing ANC visits completed vs target (>=4). Color-coded: green (on track), amber (behind schedule), red (near EDC with <4 visits).
+- **Confirmation gate on delivery recording:** Recording a pregnancy outcome (especially FD or AM) is a significant clinical event. Require explicit confirmation.
+- **Status visibility:** Each TCL row shows current status: `Active Pregnancy`, `Delivered`, `Postpartum`, `Completed`.
+- **Next expected service date:** Auto-calculated from the ANC schedule or PP checkup timeline. Displayed as a column for proactive follow-up.
+- **Pre-population:** Patient identity columns auto-filled from `patients` table. Midwife only enters clinical data.
+- **Newborn linkage:** On livebirth recording, prompt to create a linked newborn patient record that feeds into Child Care TCL Part 1.
 
 ---
 
 ## Database Schema Notes
 
-- **Table:** `maternal_records` — one row per pregnancy. FK to `patient_id`. Columns: `lmp_date`, `edc_date` (computed), `gravida`, `parity`, `pregnancy_outcome`, `delivery_date`, `birth_weight`, `birth_sex`, `birth_attendant`, `place_of_delivery`, `delivery_type`, `is_high_risk`, `high_risk_reasons TEXT[]`, `record_status`, `nhts_status`, `health_station_id`, `deleted_at`.
-- **Child table:** `anc_visits(id, maternal_record_id, visit_date, trimester, aog_weeks, bp_systolic, bp_diastolic, weight_kg, services_json)`.
-- **EDC computation:** Store in column; re-derive if LMP corrected.
-- **Indexes:** `(health_station_id, record_status)`, `(patient_id, lmp_date)`.
-- **NHTS column:** `nhts_status` on `maternal_records` — inherited from patient profile.
-- **Record status:** `PENDING_SYNC` → `PENDING_VALIDATION` → `VALIDATED` / `RETURNED`.
+- **Table:** `maternal_records` — one row per pregnancy. FK to `patient_id`, `health_station_id`.
+- **Child table:** `anc_visits(id, maternal_record_id, visit_date, trimester, aog_weeks, vitals_json, services_json)`.
+- **EDC column:** Stored as computed column derived from `lmp_date`. Re-derive if LMP corrected.
+- **High-risk flags:** `is_high_risk BOOLEAN`, `high_risk_reasons TEXT[]`. Auto-populated from triggers.
+- **NHTS disaggregation:** Inherited from `patients.nhts_status`.
+- **Record status:** `record_status ENUM('PENDING_SYNC', 'PENDING_VALIDATION', 'VALIDATED', 'RETURNED')` on each record.
 - **Soft delete:** `deleted_at TIMESTAMPTZ`. All reads: `WHERE deleted_at IS NULL`. RA 10173.
-- **Cross-reference:** Newborn creates a new `patients` row linked via `maternal_record_id`. BCG/HepB cross-reference with `immunization_records`.
+- **Indexes:** `maternal_records(health_station_id, record_status)`, `maternal_records(patient_id)`, `anc_visits(maternal_record_id)`.
+- **TCL view:** Implemented as a database view or API query joining `maternal_records` + `patients` + latest `anc_visits`, filtered by `health_station_id` and active pregnancies.
 
 ---
 
 ## Reports and Exports
 
-This TCL feeds the following indicators in the Summary Table (ST) and M1 Report:
+This TCL feeds the following Summary Table (ST) indicators:
 
-| Indicator | Numerator | Target | Denominator |
-|:----------|:----------|:-------|:------------|
-| ≥4 ANC Check-ups | `anc_count >= 4` | 95% | Total Population × 2.056% |
-| Nutritional Status (BMI 1st Tri — Normal) | `bmi_classification = 'Normal'` | <30% at-risk | Total Population × 2.056% |
-| Td Immunization (1st pregnancy) | `td2_date IS NOT NULL` | 95% | Total Population × 2.056% |
-| Td2 Plus (2nd+ pregnancy) | `td3_date IS NOT NULL` | 95% | Total Population × 2.056% |
-| Iron with Folic Acid completed | `ifa_completed = true` (180 tablets) | 95% | Total Population × 2.056% |
-| Calcium Carbonate completed | `calcium_completed = true` | 95% | Total Population × 2.056% |
-| Deworming (pregnant) | `deworming_date IS NOT NULL` | 95% | Total Population × 2.056% |
-| Facility-Based Delivery | `place_of_delivery = 'Health Facility'` | 95% | Total livebirths |
-| SBA-Attended Delivery | `birth_attendant = 'SBA'` | 95% | Total livebirths |
-| ≥2 PP Check-ups | `pp_checkup_count >= 2` | 95% | Total livebirths |
-| Vitamin A (postpartum) | `pp_vita_date IS NOT NULL` | 95% | Total livebirths |
+| Indicator | Numerator | Denominator | Target |
+|:----------|:----------|:------------|:-------|
+| >= 4 ANC Check-ups | `anc_4_plus_achieved = true` | Total Pop x 2.056% | 95% |
+| Nutritional Status (Normal BMI 1st Tri) | `bmi_classification = 'Normal'` | Total Pop x 2.056% | <30% at-risk |
+| Td Immunization (1st pregnancy) | `td2_date IS NOT NULL` (parity=0) | Total Pop x 2.056% | 95% |
+| Td2 Plus (2nd+ pregnancy) | `td3_date IS NOT NULL` (parity>=1) | Total Pop x 2.056% | 95% |
+| Iron with Folic Acid | `ifa_given = true` | Total Pop x 2.056% | 95% |
+| Calcium Carbonate | `calcium_given = true` | Total Pop x 2.056% | 95% |
+| Iodine Capsule | `iodine_given = true` | Total Pop x 2.056% | 95% |
+| Deworming | `deworming_date IS NOT NULL` | Total Pop x 2.056% | 95% |
+| Syphilis Screening | `syphilis_screened = true` | Total Pop x 2.056% | 95% |
+| HepB Screening | `hepb_screened = true` | Total Pop x 2.056% | 95% |
+| HIV Screening | `hiv_screened = true` | Total Pop x 2.056% | 95% |
+| CBC/Hgb Screening | `cbc_screened = true` | Total Pop x 2.056% | 95% |
+| GD Screening | `gd_screened = true` | Total Pop x 2.056% | 95% |
+| Facility-Based Delivery | `place_of_delivery = 'Health Facility'` | Total deliveries | 95% |
+| SBA-Attended Delivery | `birth_attendant = 'SBA'` | Total deliveries | 95% |
+| >= 2 PP Check-ups | `pp_2_achieved = true` | Total deliveries (livebirth) | 95% |
+| PP Vitamin A | `pp_vitamin_a_date IS NOT NULL` | Total deliveries (livebirth) | 95% |
+| PP Iron with Folic Acid | `pp_ifa_3months = true` | Total deliveries (livebirth) | 95% |
 
-All indicators are disaggregated by: **NHTS / Non-NHTS** and **age group (10–14, 15–19, 20–49)**.
+All indicators disaggregated by NHTS/Non-NHTS and age group (10-14, 15-19, 20-49).

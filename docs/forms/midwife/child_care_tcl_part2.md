@@ -1,91 +1,89 @@
-# Child Care TCL Part 2 (Children 12–59 months) — Target Client List
+# Child Care TCL Part 2 (Children 12-59 months) — TCL / Registry
 
 **Role:** Midwife (RHM)
-**Purpose:** Track immunization completion, nutrition status, Vitamin A supplementation, MNP, and deworming for children aged 12–59 months. Pre-populated from the Master List of Children 12–59 months.
-**FHSIS Reference:** FHSIS MOP 2018, Chapter 4.3 — Child Care and Services (PDF pages 183–254, doc pages 169–240)
-**Who fills it:** BHW (anthropometric measurement, Vitamin A distribution, deworming); Midwife/Nurse (MCV-2, clinical assessment).
-**Who reviews/approves it:** Midwife validates BHW entries.
-**Frequency:** Updated per visit; tallied monthly for ST.
-**Storage location:** `immunization_records`, `nutrition_records`, `deworming_records`, `encounters`.
+**Purpose:** Target Client List for all children aged 12-59 months in the BHS catchment area. Tracks EPI completion (MCV-2), nutrition status (anthropometry, Vitamin A, MNP), deworming, and sick child management (IMCI). Primary data source for the under-five section of the Summary Table.
+**FHSIS Reference:** FHSIS MOP 2018, Chapter 4.3 — Child Care and Services (PDF pages 183-254, doc pages 169-240)
+**Who fills it:** Auto-populated from validated immunization, nutrition, and sick child ITR records. BHW captures measurements; Midwife validates and classifies.
+**Who reviews/approves it:** Midwife manages the TCL; PHN reviews during MCT consolidation.
+**Frequency:** Updated continuously as encounters are validated. Reviewed end-of-month for ST generation.
+**Storage location:** `immunization_records`, `nutrition_records`, `sick_child_encounters` tables; TCL is a computed view
 
 ---
 
 ## Required Fields
 
-### Name Column (Pre-populated from Master List)
+Each row represents one child (12-59 months).
+
+### Patient Identity Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Child Name** | String | Last, First, Middle | |
-| **Patient ID** | String | Format: `{BHS_CODE}-{YYYY}-{NNNN}` | |
-| **Family Serial Number** | String | FK to `households` | |
-| **Date of Birth** | Date | | |
-| **Sex** | Enum | `Male` / `Female` | FHSIS disaggregation |
-| **Age (months)** | Integer (computed) | 12–59 months | |
-| **NHTS Status** | Enum | `NHTS` / `Non-NHTS` | |
+| `patient_id` | UUID | FK to `patients`. Required. | |
+| `patient_last_name` | String | From `patients` | |
+| `patient_first_name` | String | From `patients` | |
+| `family_serial_number` | String | FK to `households` | |
+| `date_of_birth` | Date | Required | For age and z-score computation |
+| `age_months` | Integer | Auto-computed from DOB | Display in months |
+| `sex` | Enum | `Male` / `Female` | For z-score table lookup and FHSIS sex disaggregation |
+| `nhts_status` | Enum | `NHTS` / `Non-NHTS` | FHSIS disaggregation |
+| `health_station_id` | UUID | FK to `health_stations` | RLS scope |
 
-### Immunization — MCV-2
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **MCV-2 Date** | Date | At 12–15 months of age | |
-| **MCV-2 Lot Number** | String | Optional | |
-| **FIC Status** | Boolean (computed) | From Part 1 immunization completion | Carried forward |
-| **CIC (Completely Immunized Child)** | Boolean (computed) | FIC + MCV-2 | |
-
-### Nutrition — Vitamin A (12–59 months)
+### Immunization Completion Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Vitamin A Dose 1 (200,000 IU) Date** | Date | February — National Vitamin A month | |
-| **Vitamin A Dose 2 (200,000 IU) Date** | Date | August — 6 months after dose 1 | |
+| `mcv2_date` | Date | At 12-15 months | MCV-2 (second dose) |
+| `fic_status` | Boolean | From Part 1 — carried forward | All infant antigens complete |
+| `cic_status` | Boolean | Auto-computed: FIC + MCV-2 | Completely Immunized Child |
 
-### Nutrition — MNP (12–23 months)
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **MNP Sachets Given** | Integer | Per visit | Only for 12–23 month group |
-| **MNP Date Given** | Date | | |
-| **MNP Cumulative Sachets** | Integer (computed) | Running total | |
-
-### Nutrition — Anthropometrics (Per Visit)
+### Nutrition Status Columns (Latest Assessment)
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Weight** | Decimal (kg) | 5–30 kg; precision 0.1 | |
-| **Height** | Decimal (cm) | Standing measurement for ≥2 years; 60–130 cm | |
-| **Measurement Method** | Enum | `Length (lying)` for <24 months / `Height (standing)` for ≥24 months | Affects z-score |
-| **MUAC** | Decimal (cm) | Required for 12–59 months | |
-| **Edema of Both Feet** | Boolean | Edema = SAM regardless of z-score | |
-| **WFA Z-score** | Decimal (computed) | WHO 2006 | |
-| **WFA Classification** | Enum (computed) | `Normal`, `Underweight`, `Severely Underweight` | |
-| **HFA Z-score** | Decimal (computed) | WHO 2006 — stunting indicator | |
-| **HFA Classification** | Enum (computed) | `Normal` (≥−2), `Stunted` (<−2), `Severely Stunted` (<−3) | |
-| **WFH Z-score** | Decimal (computed) | WHO 2006 — wasting indicator | |
-| **WFH Classification** | Enum (computed) | `Normal`, `MAM`, `SAM` | |
-| **MUAC Classification** | Enum (computed) | `Green (≥12.5)`, `Yellow (11.5–<12.5)`, `Red (<11.5)` | |
+| `latest_weight_kg` | Decimal | From most recent nutrition visit | Precision: 0.1 kg |
+| `latest_height_cm` | Decimal | Height (standing) for >= 2 years | Precision: 0.1 cm |
+| `latest_muac_cm` | Decimal | Required for 6-59 months | |
+| `wfa_zscore` | Decimal | Auto-computed from WHO 2006 growth standards | Weight-for-Age |
+| `wfa_classification` | Enum | `Normal` (>=-2), `Underweight` (<-2 to >=-3), `Severely Underweight` (<-3) | |
+| `wfh_zscore` | Decimal | Auto-computed. Primary wasting indicator. | Weight-for-Height |
+| `wfh_classification` | Enum | `Normal`, `MAM`, `SAM` | |
+| `muac_classification` | Enum | `Green (>=12.5cm)`, `Yellow (11.5-<12.5cm)`, `Red (<11.5cm)` | |
+| `bilateral_edema` | Boolean | Edema = SAM regardless of z-score | |
+| `nutrition_status` | Enum | `Normal`, `MAM`, `SAM`, `Overweight/Obese` | Composite assessment |
+| `sam_flag` | Boolean | WFH z-score <-3 OR bilateral edema OR MUAC <11.5cm | High-risk |
+| `mam_flag` | Boolean | WFH z-score <-2 to >=-3 OR MUAC 11.5-<12.5cm | |
 
-### Deworming (PSAC: 1–4 years)
-
-| Field Name | Data Type | Constraints / Validation Rules | Notes |
-|:-----------|:----------|:-------------------------------|:------|
-| **Dose 1 — Drug Given** | Enum | `Albendazole 200mg` (1–<2 yrs) / `Albendazole 400mg` (2–4 yrs) / `Mebendazole 500mg` | |
-| **Dose 1 — Date Given** | Date | | |
-| **Dose 1 — Place** | Enum | `School` / `Community` | |
-| **Dose 2 — Drug Given** | Enum | Same as Dose 1 | |
-| **Dose 2 — Date Given** | Date | ≥6 months after Dose 1 | |
-| **Dose 2 — Place** | Enum | `School` / `Community` | |
-
-### Sick Child Management (IMCI)
+### Vitamin A Supplementation Columns
 
 | Field Name | Data Type | Constraints / Validation Rules | Notes |
 |:-----------|:----------|:-------------------------------|:------|
-| **Vitamin A for Sick Child Date** | Date | Therapeutic dose per IMCI | |
-| **Vitamin A Sick Dose (IU)** | Enum | `200,000 IU` (12–59 months) | |
-| **ORS Given (Diarrhea)** | Boolean | FHSIS indicator | |
-| **Zinc Given (Diarrhea)** | Boolean | Co-administered with ORS | |
-| **Pneumonia Treatment Given** | Boolean | FHSIS indicator | |
-| **Referral** | Boolean | Urgent for danger signs or SAM | |
+| `vita_dose1_date` | Date | February (200,000 IU) | National Vitamin A month |
+| `vita_dose2_date` | Date | August (200,000 IU, 6 months after dose 1) | |
+| `vita_2_doses_complete` | Boolean | Both doses given in current year | FHSIS indicator |
+
+### MNP (Micronutrient Powder) Columns
+
+| Field Name | Data Type | Constraints / Validation Rules | Notes |
+|:-----------|:----------|:-------------------------------|:------|
+| `mnp_sachets_received` | Integer | Cumulative count for the period | |
+| `mnp_complete` | Boolean | Completed MNP course | FHSIS indicator |
+
+### Deworming Columns
+
+| Field Name | Data Type | Constraints / Validation Rules | Notes |
+|:-----------|:----------|:-------------------------------|:------|
+| `deworming_dose1_date` | Date | | |
+| `deworming_dose2_date` | Date | >= 6 months after dose 1 | |
+| `deworming_2_doses_complete` | Boolean | Both doses given | FHSIS indicator |
+
+### Sick Child Management Columns (if applicable)
+
+| Field Name | Data Type | Constraints / Validation Rules | Notes |
+|:-----------|:----------|:-------------------------------|:------|
+| `diarrhea_ors_given` | Boolean | ORS given for diarrhea episode | FHSIS indicator |
+| `diarrhea_zinc_given` | Boolean | Zinc co-administered with ORS | |
+| `pneumonia_treatment_given` | Boolean | Antibiotic for pneumonia | FHSIS indicator |
+| `vita_for_sick_child` | Boolean | Therapeutic Vitamin A dose | |
 
 ---
 
@@ -93,61 +91,62 @@
 
 | Field Name | Data Type | Condition for Display | Notes |
 |:-----------|:----------|:----------------------|:------|
-| **MNP fields** | All | Only if age 12–23 months | |
-| **Sick child fields** | All | Only when child presents as sick | |
-| **Deworming Dose 2** | All | Only ≥6 months after Dose 1 | |
-| **Vitamin A for sick child** | All | Only for sick child encounters with measles/diarrhea/pneumonia/malnutrition | |
+| Sick child columns | Multiple | Only when child has a sick visit recorded | Not all children get sick |
+| `mcv2_date` | Date | Only when child reaches 12 months | |
+| `deworming_dose1_date` | Date | Only for children >= 12 months (PSAC starts at 1 year) | |
 
 ---
 
 ## Enums / Controlled Vocabularies
 
-- **Sex:** `Male`, `Female`
-- **NHTS Status:** `NHTS`, `Non-NHTS`
-- **WFA Classification:** `Normal`, `Underweight`, `Severely Underweight`
-- **HFA Classification:** `Normal`, `Stunted`, `Severely Stunted`
-- **WFH Classification:** `Normal`, `MAM`, `SAM`
-- **MUAC Classification:** `Green`, `Yellow`, `Red`
-- **Deworming Drug:** `Albendazole 200mg`, `Albendazole 400mg`, `Mebendazole 500mg`
-- **Deworming Place:** `School`, `Community`
-- **Measurement Method:** `Length (lying)`, `Height (standing)`
+| Enum | Values |
+|:-----|:-------|
+| `wfa_classification` | `Normal`, `Underweight`, `Severely Underweight` |
+| `wfh_classification` | `Normal`, `MAM`, `SAM` |
+| `muac_classification` | `Green`, `Yellow`, `Red` |
+| `nutrition_status` | `Normal`, `Stunted`, `MAM`, `SAM`, `Overweight/Obese` |
 
 ---
 
 ## UX / Clinical Safety Concerns
 
-- **Age-based section visibility** — MNP fields only for 12–23 months. Deworming drug dose depends on age (<2 vs ≥2).
-- **Z-score computation** — server-side or client-side from WHO 2006 lookup tables. Never user-entered.
-- **SAM/MAM persistent badge** — SAM (red) and MAM (yellow) must persist in list views.
-- **Growth chart** — display weight-for-age, height-for-age, and weight-for-height curves with z-score bands.
-- **Trend alert** — flag consecutive worsening z-scores (e.g., Normal → MAM → SAM) with escalating alert.
-- **Deworming interval validation** — "Dose 2 must be at least 6 months after Dose 1."
-- **Vitamin A biannual schedule** — February and August. System should show next expected Vitamin A date.
-- **Offline-first** — anthropometric measurements can be captured offline. Z-score lookup table bundled in PWA.
+- **SAM/MAM badges:** Persistent high-risk badges for SAM (red) and MAM (amber) in all list views. Must survive pagination.
+- **Growth trend visualization:** Display weight-for-age and weight-for-height curves (WHO 2006 growth charts) for each child. Alert if consecutive worsening z-scores.
+- **Z-scores are never user-entered** — always computed server-side (or offline from bundled WHO lookup tables). Display as read-only.
+- **Vitamin A schedule:** Visual indicator showing dose status: February dose (done/pending), August dose (done/pending).
+- **Deworming schedule:** Semi-annual reminders at BHS level.
+- **IMCI danger signs:** If a sick child encounter records any danger sign (unable to feed, convulsions, lethargy), display urgent referral alert.
+- **Transition alert:** When a child reaches 60 months (5 years), flag for graduation from this TCL. Children 5-9 years move to SAC group (tracked differently).
+- **Edema override:** If bilateral edema is checked, nutrition status is automatically SAM regardless of z-score — make this logic visible to the midwife.
 
 ---
 
 ## Database Schema Notes
 
-- **Tables:** `immunization_records` (shared with Part 1, FK to `patient_id`), `nutrition_records` (per visit), `deworming_records(id, patient_id, dose_number, drug, date_given, place, adverse_reaction)`.
-- **Z-scores stored:** Computed values stored for historical tracking in `nutrition_records`.
-- **Nutrition status:** `nutrition_status ENUM('normal', 'mam', 'sam')`. Computed on every save.
-- **CIC flag:** Computed from FIC + MCV-2 completion.
-- **NHTS column:** Inherited from patient profile.
-- **Indexes:** `(health_station_id, record_status)`, `(patient_id, date_of_birth)`.
+- **Tables:** `immunization_records` (vaccine data), `nutrition_records` (anthropometry, Vitamin A, MNP per visit), `deworming_records`, `sick_child_encounters`.
+- **Z-score computation:** WHO 2006 growth standards lookup table bundled in PWA for offline. Server-side validation on sync.
+- **Nutrition status:** `nutrition_status ENUM('Normal', 'MAM', 'SAM', 'Overweight/Obese')` computed on every save.
+- **NHTS disaggregation:** From `patients.nhts_status`.
+- **Record status:** On each underlying encounter record.
 - **Soft delete:** `deleted_at TIMESTAMPTZ`. RA 10173.
+- **TCL view:** Database view joining `patients` + latest `nutrition_records` + `immunization_records` + `deworming_records` filtered by age 12-59 months and `health_station_id`.
+- **Indexes:** On `patient_id`, `health_station_id`, and age-range queries.
 
 ---
 
 ## Reports and Exports
 
-| Indicator | Numerator | Target | Denominator |
-|:----------|:----------|:-------|:------------|
-| MCV at 12 months | `mcv2_date IS NOT NULL` | 95% | Pop × 2.056% |
-| Vitamin A (12–59 months, 2 doses) | `vita_dose2_date IS NOT NULL` | 95% | Children 12–59 mo |
-| MNP (12–23 months) | Sachets distributed | Target | Children 12–23 mo |
-| Deworming PSAC (2 doses) | `dose2_date IS NOT NULL` | 95% | Children 1–4 yrs |
-| Diarrhea given ORS/zinc | `ors_given = true` | 100% | Diarrhea cases |
-| Pneumonia given treatment | `pneumonia_treatment = true` | 100% | Pneumonia cases |
+This TCL feeds the following ST indicators:
 
-All disaggregated by: **sex** and **NHTS / Non-NHTS**.
+| Indicator | Numerator | Target |
+|:----------|:----------|:-------|
+| MCV at 12 months | `mcv2_date IS NOT NULL` | 95% |
+| CIC (Completely Immunized) | `cic_status = true` | 95% |
+| Vitamin A (12-59 months, 2 doses) | `vita_2_doses_complete = true` | 95% |
+| MNP supplementation | `mnp_complete = true` | Target |
+| Nutritional status (0-59 months) | `nutrition_status` distribution | Reporting |
+| Deworming (PSAC, 2 doses) | `deworming_2_doses_complete = true` | Target |
+| Diarrhea given ORS/zinc | `diarrhea_ors_given = true` | 100% |
+| Pneumonia given treatment | `pneumonia_treatment_given = true` | 100% |
+
+All disaggregated by sex and NHTS/Non-NHTS.
