@@ -12,6 +12,7 @@ export function CreateUserPage() {
       { label: 'Users', href: '/admin/users' },
       { label: 'Create User' },
     ],
+    showTitle: false,
   })
 
   return (
@@ -26,7 +27,7 @@ export function CreateUserPage() {
       <div>
         <h1 className="font-heading text-2xl font-semibold">Create User</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Add a new user account. They will be required to change their password on first login.
+          Provision a new staff account with normalized profile fields, role scoping, and optional profile photo support.
         </p>
       </div>
 

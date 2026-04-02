@@ -8,7 +8,7 @@ import { useSetPageMeta } from '@/contexts/page-context'
 import { mockPatients } from '@/lib/mock-patients'
 
 export function PatientSearchPage() {
-  useSetPageMeta({ title: 'Patients', breadcrumbs: [{ label: 'Patients' }] })
+  useSetPageMeta({ title: 'Patients', breadcrumbs: [{ label: 'Patients' }], showTitle: false })
 
   const navigate = useNavigate()
   const [query, setQuery] = useState('')

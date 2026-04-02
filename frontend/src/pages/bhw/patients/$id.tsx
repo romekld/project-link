@@ -38,6 +38,7 @@ export function PatientDetailPage() {
       { label: 'Patients', href: '/bhw/patients/search' },
       { label: patient ? `${patient.first_name} ${patient.last_name}` : 'Patient' },
     ],
+    showTitle: false,
   })
 
   if (!patient) {

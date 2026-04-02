@@ -61,6 +61,7 @@ export function HouseholdDetailPage() {
       { label: 'Households', href: '/bhw/households' },
       { label: household?.household_number ?? 'Household' },
     ],
+    showTitle: false,
   })
 
   if (!household) {

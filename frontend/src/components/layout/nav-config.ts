@@ -137,6 +137,7 @@ export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
       children: [
         { title: 'Disease Map', url: '/cho/intelligence/map' },
         { title: 'Coverage Planner', url: '/cho/intelligence/coverage' },
+        { title: 'Health Station Management', url: '/cho/intelligence/stations' },
         { title: 'Health Station Pins', url: '/cho/intelligence/pins' },
         { title: 'Forecasting', url: '/cho/intelligence/forecast' },
       ],
@@ -157,6 +158,7 @@ export const NAV_CONFIG: Record<UserRole, NavItem[]> = {
       children: [
         { title: 'Coverage Planner', url: '/admin/bhs/coverage' },
         { title: 'City Barangay Registry', url: '/admin/bhs/city-barangays' },
+        { title: 'Health Station Management', url: '/admin/bhs/stations' },
         { title: 'Health Station Pins', url: '/admin/bhs/pins' },
       ],
     },

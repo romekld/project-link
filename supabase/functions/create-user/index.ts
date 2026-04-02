@@ -51,23 +51,66 @@ Deno.serve(async (req) => {
     const {
       email,
       password,
-      full_name,
+      first_name,
+      middle_name,
+      last_name,
+      name_suffix,
       username,
       date_of_birth,
       sex,
       mobile_number,
+      alternate_mobile_number,
       role,
       health_station_id,
       purok_assignment,
+      coverage_notes,
+      admin_notes,
     } = body
 
+    const normalizedEmail = typeof email === 'string' ? email.trim() : ''
+    const normalizedFirstName = typeof first_name === 'string' ? first_name.trim() : ''
+    const normalizedLastName = typeof last_name === 'string' ? last_name.trim() : ''
+    const normalizedUsername = typeof username === 'string' ? username.trim() : ''
+
     // Validate required fields
-    if (!email || !password || !full_name || !username || !date_of_birth || !sex || !role) {
+    if (!normalizedEmail || !password || !normalizedFirstName || !normalizedLastName || !normalizedUsername || !date_of_birth || !sex || !role) {
       return new Response(
         JSON.stringify({ data: null, error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    if (!['M', 'F'].includes(sex)) {
+      return new Response(
+        JSON.stringify({ data: null, error: 'Sex must be either M or F.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (mobile_number && !/^\+639\d{9}$/.test(mobile_number)) {
+      return new Response(
+        JSON.stringify({ data: null, error: 'Mobile number must be in +639XXXXXXXXX format.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (alternate_mobile_number && !/^\+639\d{9}$/.test(alternate_mobile_number)) {
+      return new Response(
+        JSON.stringify({ data: null, error: 'Alternate mobile number must be in +639XXXXXXXXX format.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const needsStation = ['bhw', 'midwife_rhm'].includes(role)
+    if (needsStation && !health_station_id) {
+      return new Response(
+        JSON.stringify({ data: null, error: 'BHS assignment is required for this role.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const normalizedStationId = needsStation ? health_station_id : null
+    const normalizedPurokAssignment = role === 'bhw' ? (purok_assignment ?? null) : null
 
     // Use service role client for admin operations
     const adminClient = createClient(
@@ -77,9 +120,13 @@ Deno.serve(async (req) => {
 
     // Create auth user
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-      email,
+      email: normalizedEmail,
       password,
       email_confirm: true,
+      user_metadata: {
+        first_name: normalizedFirstName,
+        last_name: normalizedLastName,
+      },
     })
 
     if (authError || !authData.user) {
@@ -94,15 +141,24 @@ Deno.serve(async (req) => {
       .from('user_profiles')
       .insert({
         id: authData.user.id,
-        full_name,
-        username,
+        first_name: normalizedFirstName,
+        middle_name: middle_name ?? null,
+        last_name: normalizedLastName,
+        name_suffix: name_suffix ?? null,
+        email: normalizedEmail,
+        username: normalizedUsername,
         date_of_birth,
         sex,
         mobile_number: mobile_number ?? null,
+        alternate_mobile_number: alternate_mobile_number ?? null,
         role,
-        health_station_id: health_station_id ?? null,
-        purok_assignment: purok_assignment ?? null,
+        health_station_id: normalizedStationId,
+        purok_assignment: normalizedPurokAssignment,
+        coverage_notes: coverage_notes ?? null,
+        admin_notes: admin_notes ?? null,
         must_change_password: true,
+        created_by: caller.id,
+        updated_by: caller.id,
       })
       .select()
       .single()

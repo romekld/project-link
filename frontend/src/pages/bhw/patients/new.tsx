@@ -25,6 +25,7 @@ export function PatientRegistrationPage() {
       { label: 'Patients', href: '/bhw/patients/search' },
       { label: 'New Patient' },
     ],
+    showTitle: false,
   })
 
   const navigate = useNavigate()

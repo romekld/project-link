@@ -8,12 +8,13 @@ export function EditUserPage() {
   const { id } = useParams({ from: '/admin/users/$id/edit' })
 
   useSetPageMeta({
-    title: 'Edit User',
+    title: 'Manage User',
     breadcrumbs: [
       { label: 'Dashboard', href: '/admin/dashboard' },
       { label: 'Users', href: '/admin/users' },
-      { label: 'Edit User' },
+      { label: 'Manage User' },
     ],
+    showTitle: false,
   })
 
   return (
@@ -26,9 +27,9 @@ export function EditUserPage() {
       </div>
 
       <div>
-        <h1 className="font-heading text-2xl font-semibold">Edit User</h1>
+        <h1 className="font-heading text-2xl font-semibold">Manage User</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Update user details. Role or BHS changes take effect immediately via the JWT claim trigger.
+          Update profile details, assignment scope, account state, and password reminder status from one screen.
         </p>
       </div>
 

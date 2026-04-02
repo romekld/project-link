@@ -42,6 +42,7 @@ export function EncounterDetailPage() {
       { label: patient ? `${patient.first_name} ${patient.last_name}` : 'Patient', href: `/bhw/patients/${id}` },
       { label: 'Visit Details' },
     ],
+    showTitle: false,
   })
 
   if (!patient || !encounter) {

@@ -34,7 +34,7 @@ function formatDate(value: string | null): string {
 }
 
 export function HouseholdListPage() {
-  useSetPageMeta({ title: 'Households', breadcrumbs: [{ label: 'Households' }] })
+  useSetPageMeta({ title: 'Households', breadcrumbs: [{ label: 'Households' }], showTitle: false })
 
   const navigate = useNavigate()
   const isOnline = useOnlineStatus()

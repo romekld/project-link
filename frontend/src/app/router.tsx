@@ -12,6 +12,8 @@ import { env } from '@/config/env'
 import {
   CoveragePlannerPage,
   CityBarangayRegistryPage,
+  HealthStationFormPage,
+  HealthStationManagementPage,
   HealthStationPinsPage,
   IntelligenceMapPage,
 } from '@/features/intelligence'
@@ -424,6 +426,21 @@ const choHealthStationPinsRoute = createRoute({
   path: '/intelligence/pins',
   component: () => <HealthStationPinsPage roleScope="cho" />,
 })
+const choHealthStationManagementRoute = createRoute({
+  getParentRoute: () => choLayoutRoute,
+  path: '/intelligence/stations',
+  component: () => <HealthStationManagementPage roleScope="cho" />,
+})
+const choHealthStationCreateRoute = createRoute({
+  getParentRoute: () => choLayoutRoute,
+  path: '/intelligence/stations/new',
+  component: () => <HealthStationFormPage roleScope="cho" mode="create" />,
+})
+const choHealthStationEditRoute = createRoute({
+  getParentRoute: () => choLayoutRoute,
+  path: '/intelligence/stations/$stationId/edit',
+  component: () => <HealthStationFormPage roleScope="cho" mode="edit" />,
+})
 const choCatchAllRoute = createRoute({
   getParentRoute: () => choLayoutRoute,
   path: '/$',
@@ -487,6 +504,21 @@ const adminBhsPinsRoute = createRoute({
   path: '/bhs/pins',
   component: () => <HealthStationPinsPage roleScope="admin" />,
 })
+const adminBhsStationsRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/bhs/stations',
+  component: () => <HealthStationManagementPage roleScope="admin" />,
+})
+const adminBhsStationsNewRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/bhs/stations/new',
+  component: () => <HealthStationFormPage roleScope="admin" mode="create" />,
+})
+const adminBhsStationsEditRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: '/bhs/stations/$stationId/edit',
+  component: () => <HealthStationFormPage roleScope="admin" mode="edit" />,
+})
 const adminCatchAllRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: '/$',
@@ -542,6 +574,9 @@ const routeTree = rootRoute.addChildren([
     choDashboardRoute,
     choIntelligenceMapRoute,
     choCoveragePlannerRoute,
+    choHealthStationManagementRoute,
+    choHealthStationCreateRoute,
+    choHealthStationEditRoute,
     choHealthStationPinsRoute,
     choCatchAllRoute,
   ]),
@@ -553,6 +588,9 @@ const routeTree = rootRoute.addChildren([
     adminBhsIndexRoute,
     adminBhsCoverageRoute,
     adminCityBarangaysRoute,
+    adminBhsStationsRoute,
+    adminBhsStationsNewRoute,
+    adminBhsStationsEditRoute,
     adminBhsPinsRoute,
     adminCatchAllRoute,
   ]),

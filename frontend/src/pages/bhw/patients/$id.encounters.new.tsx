@@ -46,6 +46,7 @@ export function NewEncounterPage() {
       { label: patient ? `${patient.first_name} ${patient.last_name}` : 'Patient', href: `/bhw/patients/${id}` },
       { label: 'New Visit' },
     ],
+    showTitle: false,
   })
 
   // Form state
