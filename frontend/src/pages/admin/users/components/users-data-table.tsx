@@ -1,70 +1,66 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import { useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  useReactTable,
+  type Column,
   type ColumnDef,
+  type ColumnFiltersState,
+  type FilterFn,
   type PaginationState,
+  type Row,
   type RowSelectionState,
   type SortingState,
+  type VisibilityState,
+  useReactTable,
 } from '@tanstack/react-table'
 import {
-  ArrowUpDown,
-  ArrowUpRight,
-  AlertCircle,
-  KeyRound,
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronsUpDown,
+  Filter,
+  MoreHorizontal,
   Search,
-  ShieldAlert,
 } from 'lucide-react'
 import type { UserProfile, UserRole } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { UserAvatar } from '@/components/user-avatar'
 import { formatDateTime, formatUserDisplayName, getRoleLabel } from '@/lib/user-profiles'
-import type {
-  AdminUsersPasswordStateFilter,
-  AdminUsersSearch,
-  AdminUsersStatusFilter,
-} from '../search'
+import type { AdminUsersPasswordStateFilter, AdminUsersStatusFilter } from '../search'
 
 export interface UserDirectoryRecord extends UserProfile {
   health_station_name?: string | null
@@ -79,18 +75,26 @@ interface UsersDataTableProps {
   onResetPassword: (user: UserDirectoryRecord) => void
 }
 
-const ROLE_OPTIONS: Array<{ value: 'all' | UserRole; label: string }> = [
-  { value: 'all', label: 'All roles' },
-  { value: 'system_admin', label: getRoleLabel('system_admin') },
-  { value: 'city_health_officer', label: getRoleLabel('city_health_officer') },
-  { value: 'phis_coordinator', label: getRoleLabel('phis_coordinator') },
-  { value: 'dso', label: getRoleLabel('dso') },
-  { value: 'nurse_phn', label: getRoleLabel('nurse_phn') },
-  { value: 'midwife_rhm', label: getRoleLabel('midwife_rhm') },
-  { value: 'bhw', label: getRoleLabel('bhw') },
-]
-
 const PAGE_SIZE_OPTIONS = [10, 20, 50]
+
+const statusFilterFn: FilterFn<UserDirectoryRecord> = (row, columnId, value) => !value || value === 'all' || row.getValue(columnId) === value
+const roleFilterFn: FilterFn<UserDirectoryRecord> = (row, columnId, value) => !value || value === 'all' || row.getValue(columnId) === value
+const bhsFilterFn: FilterFn<UserDirectoryRecord> = (row, columnId, value) => !value || value === 'all' || row.getValue(columnId) === value
+const passwordFilterFn: FilterFn<UserDirectoryRecord> = (row, columnId, value) => !value || value === 'all' || row.getValue(columnId) === value
+
+const globalUserFilter: FilterFn<UserDirectoryRecord> = (row, _columnId, filterValue) => {
+  const query = String(filterValue ?? '').trim().toLowerCase()
+  if (!query) return true
+  const values = [
+    formatUserDisplayName(row.original),
+    row.original.user_id,
+    row.original.username,
+    row.original.email,
+    row.original.mobile_number ?? '',
+    row.original.health_station_name ?? '',
+  ]
+  return values.some((value) => value.toLowerCase().includes(query))
+}
 
 export function UsersDataTable({
   users,
@@ -100,47 +104,45 @@ export function UsersDataTable({
   onToggleStatus,
   onResetPassword,
 }: UsersDataTableProps) {
-  const search = useSearch({ from: '/admin/users' })
-  const navigate = useNavigate({ from: '/admin/users' })
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }])
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [searchDraft, setSearchDraft] = useState('')
+  const [statusFilter, setStatusFilter] = useState<AdminUsersStatusFilter>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
+  const [bhsFilter, setBhsFilter] = useState('all')
+  const [passwordStateFilter, setPasswordStateFilter] = useState<AdminUsersPasswordStateFilter>('all')
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    email: true,
+    mobile_number: true,
+    bhs: true,
+    last_login_at: true,
+    password_state: false,
+    username: false,
+  })
+  const columnFilters = useMemo<ColumnFiltersState>(() => {
+    const filters: ColumnFiltersState = []
+    if (statusFilter !== 'all') filters.push({ id: 'status', value: statusFilter })
+    if (roleFilter !== 'all') filters.push({ id: 'role', value: roleFilter })
+    if (bhsFilter !== 'all') filters.push({ id: 'bhs', value: bhsFilter })
+    if (passwordStateFilter !== 'all') filters.push({ id: 'password_state', value: passwordStateFilter })
+    return filters
+  }, [bhsFilter, passwordStateFilter, roleFilter, statusFilter])
 
-  const updateSearch = useCallback((updater: (prev: AdminUsersSearch) => AdminUsersSearch) => {
-    navigate({
-      search: (prev) => updater(prev as AdminUsersSearch),
-      replace: true,
-    })
-  }, [navigate])
+  const roleOptions = useMemo(() => ([
+    { label: 'System Admin', value: 'system_admin' },
+    { label: 'City Health Officer', value: 'city_health_officer' },
+    { label: 'PHIS Coordinator', value: 'phis_coordinator' },
+    { label: 'DSO', value: 'dso' },
+    { label: 'PHN', value: 'nurse_phn' },
+    { label: 'Midwife / RHM', value: 'midwife_rhm' },
+    { label: 'BHW', value: 'bhw' },
+  ]), [])
 
-  const filteredUsers = useMemo(() => {
-    const normalizedSearch = search.q.trim().toLowerCase()
-
-    return users.filter((user) => {
-      const displayName = formatUserDisplayName(user).toLowerCase()
-      const matchesSearch = normalizedSearch === ''
-        || displayName.includes(normalizedSearch)
-        || user.username.toLowerCase().includes(normalizedSearch)
-        || user.email.toLowerCase().includes(normalizedSearch)
-        || user.user_id.toLowerCase().includes(normalizedSearch)
-
-      const matchesStatus = search.status === 'all'
-        || (search.status === 'active' && user.is_active)
-        || (search.status === 'inactive' && !user.is_active)
-
-      const matchesRole = search.role === 'all' || user.role === search.role
-      const matchesBhs = search.bhs === 'all' || user.health_station_id === search.bhs
-      const matchesPasswordState = search.passwordState === 'all'
-        || (search.passwordState === 'pending' && user.must_change_password)
-        || (search.passwordState === 'complete' && !user.must_change_password)
-
-      return matchesSearch && matchesStatus && matchesRole && matchesBhs && matchesPasswordState
-    })
-  }, [search.bhs, search.passwordState, search.q, search.role, search.status, users])
-
-  const pagination = useMemo<PaginationState>(() => ({
-    pageIndex: Math.max(search.page - 1, 0),
-    pageSize: search.pageSize,
-  }), [search.page, search.pageSize])
+  const bhsOptions = useMemo(() => stations.map((station) => ({ label: station.name, value: station.id })), [stations])
 
   const columns = useMemo<ColumnDef<UserDirectoryRecord>[]>(() => [
     {
@@ -149,8 +151,7 @@ export function UsersDataTable({
         <Checkbox
           checked={table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(Boolean(value))}
-          aria-label="Select all visible users"
-          className="translate-y-[2px]"
+          aria-label="Select all users on this page"
         />
       ),
       cell: ({ row }) => (
@@ -158,288 +159,176 @@ export function UsersDataTable({
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
           aria-label={`Select ${formatUserDisplayName(row.original)}`}
-          className="translate-y-[2px]"
         />
       ),
       enableSorting: false,
       enableHiding: false,
     },
     {
-      accessorKey: 'username',
-      header: 'Username',
-      cell: ({ row }) => <span className="font-medium text-foreground">{row.original.username}</span>,
-    },
-    {
       id: 'name',
       accessorFn: (row) => formatUserDisplayName(row),
-      header: 'Name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       cell: ({ row }) => (
         <div className="flex min-w-0 items-center gap-3">
-          <UserAvatar
-            firstName={row.original.first_name}
-            lastName={row.original.last_name}
-            photoPath={row.original.profile_photo_path}
-          />
+          <UserAvatar firstName={row.original.first_name} lastName={row.original.last_name} photoPath={row.original.profile_photo_path} />
           <div className="flex min-w-0 flex-col">
             <span className="truncate font-medium">{formatUserDisplayName(row.original)}</span>
             <span className="truncate text-xs text-muted-foreground">{row.original.user_id}</span>
           </div>
         </div>
       ),
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'username',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Username" />,
+      cell: ({ row }) => <span className="font-medium text-foreground">{row.original.username}</span>,
     },
     {
       accessorKey: 'email',
-      header: 'Email',
-      cell: ({ row }) => (
-        <span className="text-sm text-foreground">{row.original.email}</span>
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
+      cell: ({ row }) => <span className="text-sm text-foreground">{row.original.email}</span>,
     },
     {
       id: 'mobile_number',
       accessorFn: (row) => row.mobile_number ?? '',
-      header: 'Phone Number',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.mobile_number ?? 'Not recorded'}
-        </span>
-      ),
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'health_station_name',
-      header: 'BHS',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.health_station_name ?? 'City-wide'}
-        </span>
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Phone Number" />,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.mobile_number ?? 'Not recorded'}</span>,
       enableSorting: false,
     },
     {
       id: 'status',
-      accessorFn: (row) => (row.is_active ? 'Active' : 'Inactive'),
-      header: 'Status',
-      cell: ({ row }) => (
-        <StatusBadge isActive={row.original.is_active} />
-      ),
+      accessorFn: (row) => (row.is_active ? 'active' : 'inactive'),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => <StatusBadge isActive={row.original.is_active} />,
+      filterFn: statusFilterFn,
       enableSorting: false,
+      enableHiding: false,
     },
     {
       accessorKey: 'role',
-      header: 'Role',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
+      cell: ({ row }) => <span className="text-sm text-foreground">{getRoleLabel(row.original.role)}</span>,
+      filterFn: roleFilterFn,
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      id: 'bhs',
+      accessorFn: (row) => row.health_station_id ?? 'city-wide',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="BHS" />,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.health_station_name ?? 'City-wide'}</span>,
+      filterFn: bhsFilterFn,
+      enableSorting: false,
+    },
+    {
+      id: 'password_state',
+      accessorFn: (row) => (row.must_change_password ? 'pending' : 'complete'),
+      header: 'Password',
       cell: ({ row }) => (
-        <span className="text-sm text-foreground">{getRoleLabel(row.original.role)}</span>
+        <Badge variant="outline" className={row.original.must_change_password ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-zinc-200 bg-zinc-50 text-zinc-700'}>
+          {row.original.must_change_password ? 'Change pending' : 'Updated'}
+        </Badge>
       ),
+      filterFn: passwordFilterFn,
       enableSorting: false,
     },
     {
       id: 'last_login_at',
       accessorFn: (row) => row.last_login_at ?? '',
-      header: 'Last Login',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {formatDateTime(row.original.last_login_at)}
-        </span>
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Last Login" />,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatDateTime(row.original.last_login_at)}</span>,
     },
     {
       id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="outline" size="xs" onClick={() => onManage(row.original)}>
-            <ArrowUpRight data-icon="inline-start" />
-            Manage
-          </Button>
-          <Button variant="outline" size="xs" onClick={() => onResetPassword(row.original)}>
-            <KeyRound data-icon="inline-start" />
-            Reset
-          </Button>
-          <Button
-            variant={row.original.is_active ? 'destructive' : 'secondary'}
-            size="xs"
-            onClick={() => onToggleStatus(row.original)}
-          >
-            <ShieldAlert data-icon="inline-start" />
-            {row.original.is_active ? 'Deactivate' : 'Activate'}
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => <DataTableRowActions row={row} onManage={onManage} onResetPassword={onResetPassword} onToggleStatus={onToggleStatus} />,
       enableSorting: false,
       enableHiding: false,
     },
   ], [onManage, onResetPassword, onToggleStatus])
 
   const table = useReactTable({
-    data: filteredUsers,
+    data: users,
     columns,
     state: {
       sorting,
       rowSelection,
+      columnVisibility,
+      columnFilters,
+      globalFilter: searchDraft,
       pagination,
     },
     enableRowSelection: true,
+    globalFilterFn: globalUserFilter,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
-    onPaginationChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(pagination) : updater
-      updateSearch((prev) => ({
-        ...prev,
-        page: next.pageIndex + 1,
-        pageSize: next.pageSize,
-      }))
-    },
+    onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
+    onColumnFiltersChange: () => {},
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualFiltering: false,
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
-  const pageCount = table.getPageCount()
-
-  useEffect(() => {
-    if (pageCount === 0 && search.page !== 1) {
-      updateSearch((prev) => ({ ...prev, page: 1 }))
-      return
-    }
-
-    if (pageCount > 0 && search.page > pageCount) {
-      updateSearch((prev) => ({ ...prev, page: pageCount }))
-    }
-  }, [pageCount, search.page, updateSearch])
-
   const currentRows = table.getRowModel().rows
-  const totalPages = Math.max(pageCount, 1)
-  const paginationItems = buildPaginationItems(search.page, totalPages)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative w-full lg:max-w-sm">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Filter users..."
-                value={search.q}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  updateSearch((prev) => ({
-                    ...prev,
-                    q: nextValue,
-                    page: 1,
-                  }))
-                }}
-              />
-            </div>
+    <div className="flex flex-1 flex-col gap-4">
+      <DataTableToolbar
+        table={table}
+        searchPlaceholder="Filter users..."
+        searchValue={searchDraft}
+        onSearchChange={(value) => {
+          setSearchDraft(value)
+          setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+        }}
+        filters={[
+          { columnId: 'status', title: 'Status', options: [{ label: 'Active', value: 'active' }, { label: 'Inactive', value: 'inactive' }] },
+          { columnId: 'role', title: 'Role', options: roleOptions },
+          { columnId: 'bhs', title: 'BHS', options: bhsOptions },
+          { columnId: 'password_state', title: 'Password', options: [{ label: 'Change pending', value: 'pending' }, { label: 'Updated', value: 'complete' }] },
+        ]}
+        statusFilter={statusFilter}
+        roleFilter={roleFilter}
+        bhsFilter={bhsFilter}
+        passwordStateFilter={passwordStateFilter}
+        onStatusFilterChange={(value) => {
+          setStatusFilter(value)
+          setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+        }}
+        onRoleFilterChange={(value) => {
+          setRoleFilter(value)
+          setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+        }}
+        onBhsFilterChange={(value) => {
+          setBhsFilter(value)
+          setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+        }}
+        onPasswordStateFilterChange={(value) => {
+          setPasswordStateFilter(value)
+          setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+        }}
+      />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <FilterSelect
-                value={search.status}
-                placeholder="Status"
-                options={[
-                  { value: 'all', label: 'Status' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
-                ]}
-                onValueChange={(value) => updateSearch((prev) => ({
-                  ...prev,
-                  status: value as AdminUsersStatusFilter,
-                  page: 1,
-                }))}
-              />
-              <FilterSelect
-                value={search.role}
-                placeholder="Role"
-                options={ROLE_OPTIONS}
-                onValueChange={(value) => updateSearch((prev) => ({
-                  ...prev,
-                  role: value as 'all' | UserRole,
-                  page: 1,
-                }))}
-              />
-              <FilterSelect
-                value={search.bhs}
-                placeholder="BHS"
-                options={[
-                  { value: 'all', label: 'BHS' },
-                  ...stations.map((station) => ({ value: station.id, label: station.name })),
-                ]}
-                onValueChange={(value) => updateSearch((prev) => ({
-                  ...prev,
-                  bhs: value,
-                  page: 1,
-                }))}
-              />
-              <FilterSelect
-                value={search.passwordState}
-                placeholder="Password state"
-                options={[
-                  { value: 'all', label: 'Password state' },
-                  { value: 'pending', label: 'Change pending' },
-                  { value: 'complete', label: 'Updated' },
-                ]}
-                onValueChange={(value) => updateSearch((prev) => ({
-                  ...prev,
-                  passwordState: value as AdminUsersPasswordStateFilter,
-                  page: 1,
-                }))}
-              />
-              <Button
-                variant="outline"
-                onClick={() => updateSearch((prev) => ({
-                  ...prev,
-                  q: '',
-                  status: 'all',
-                  role: 'all',
-                  bhs: 'all',
-                  passwordState: 'all',
-                  page: 1,
-                }))}
-              >
-                Clear filters
-              </Button>
-            </div>
-          </div>
-
-          <Button size="lg" nativeButton={false} render={<Link to="/admin/users/new" />}>
-            Add User
-          </Button>
-        </div>
-      </div>
-
-      <div className="hidden rounded-xl border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                {headerGroup.headers.map((header) => {
-                  const canSort = header.column.getCanSort()
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : canSort ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="-ml-2"
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          <ArrowUpDown data-icon="inline-end" />
-                        </Button>
-                      ) : (
-                        flexRender(header.column.columnDef.header, header.getContext())
-                      )}
-                    </TableHead>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {loading ? (
-              Array.from({ length: search.pageSize }).map((_, index) => (
+              Array.from({ length: pagination.pageSize }).map((_, index) => (
                 <TableRow key={`loading-${index}`}>
                   {columns.map((column, cellIndex) => (
                     <TableCell key={`loading-${column.id ?? cellIndex}`}>
@@ -448,19 +337,17 @@ export function UsersDataTable({
                   ))}
                 </TableRow>
               ))
-            ) : currentRows.length > 0 ? (
+            ) : currentRows.length ? (
               currentRows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() ? 'selected' : undefined}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="py-12">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   <NoResults />
                 </TableCell>
               </TableRow>
@@ -471,7 +358,7 @@ export function UsersDataTable({
 
       <div className="flex flex-col gap-3 md:hidden">
         {loading ? (
-          Array.from({ length: Math.min(search.pageSize, 4) }).map((_, index) => (
+          Array.from({ length: Math.min(pagination.pageSize, 4) }).map((_, index) => (
             <div key={`mobile-loading-${index}`} className="rounded-xl border bg-card p-4">
               <div className="flex items-center gap-3">
                 <Skeleton className="size-10 rounded-full" />
@@ -482,22 +369,12 @@ export function UsersDataTable({
               </div>
             </div>
           ))
-        ) : currentRows.length > 0 ? (
+        ) : currentRows.length ? (
           currentRows.map((row) => (
             <article key={row.id} className="rounded-xl border bg-card p-4">
               <div className="flex items-start gap-3">
-                <Checkbox
-                  checked={row.getIsSelected()}
-                  onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
-                  aria-label={`Select ${formatUserDisplayName(row.original)}`}
-                  className="mt-2"
-                />
-                <UserAvatar
-                  firstName={row.original.first_name}
-                  lastName={row.original.last_name}
-                  photoPath={row.original.profile_photo_path}
-                  size="lg"
-                />
+                <Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(Boolean(value))} aria-label={`Select ${formatUserDisplayName(row.original)}`} className="mt-2" />
+                <UserAvatar firstName={row.original.first_name} lastName={row.original.last_name} photoPath={row.original.profile_photo_path} size="lg" />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate font-medium">{formatUserDisplayName(row.original)}</span>
                   <span className="truncate text-sm text-muted-foreground">@{row.original.username}</span>
@@ -508,156 +385,360 @@ export function UsersDataTable({
                   </div>
                 </div>
               </div>
-
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <CardDatum label="Phone Number" value={row.original.mobile_number ?? 'Not recorded'} />
                 <CardDatum label="BHS" value={row.original.health_station_name ?? 'City-wide'} />
                 <CardDatum label="Last Login" value={formatDateTime(row.original.last_login_at)} />
                 <CardDatum label="Password State" value={row.original.must_change_password ? 'Change pending' : 'Updated'} />
               </div>
-
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => onManage(row.original)}>
-                  Manage
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => onResetPassword(row.original)}>
-                  Reset password
-                </Button>
-                <Button
-                  variant={row.original.is_active ? 'destructive' : 'secondary'}
-                  size="sm"
-                  onClick={() => onToggleStatus(row.original)}
-                >
+                <Button variant="outline" size="sm" onClick={() => onManage(row.original)}>Manage</Button>
+                <Button variant="outline" size="sm" onClick={() => onResetPassword(row.original)}>Reset password</Button>
+                <Button variant={row.original.is_active ? 'destructive' : 'secondary'} size="sm" onClick={() => onToggleStatus(row.original)}>
                   {row.original.is_active ? 'Deactivate' : 'Activate'}
                 </Button>
               </div>
             </article>
           ))
-        ) : (
-          <NoResults />
-        )}
+        ) : <NoResults />}
       </div>
 
-      {!loading && filteredUsers.length > 0 ? (
-        <div className="flex flex-col gap-3 rounded-xl border bg-card px-4 py-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Rows per page</span>
-            <Select
-              value={String(search.pageSize)}
-              onValueChange={(value: string | null) => {
-                const nextPageSize = Number(value ?? search.pageSize)
-                updateSearch((prev) => ({
-                  ...prev,
-                  pageSize: nextPageSize,
-                  page: 1,
-                }))
-              }}
-            >
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {PAGE_SIZE_OPTIONS.map((pageSize) => (
-                    <SelectItem key={pageSize} value={String(pageSize)}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="text-sm text-muted-foreground">
-            Page {search.page} of {totalPages}
-          </div>
-
-          <Pagination className="mx-0 w-auto justify-start md:justify-end">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => updateSearch((prev) => ({
-                    ...prev,
-                    page: Math.max(prev.page - 1, 1),
-                  }))}
-                  disabled={search.page <= 1}
-                />
-              </PaginationItem>
-
-              {paginationItems.map((item, index) => (
-                <PaginationItem key={`${item}-${index}`}>
-                  {item === 'ellipsis' ? (
-                    <PaginationEllipsis />
-                  ) : (
-                    <PaginationLink
-                      isActive={item === search.page}
-                      onClick={() => updateSearch((prev) => ({
-                        ...prev,
-                        page: item,
-                      }))}
-                    >
-                      {item}
-                    </PaginationLink>
-                  )}
-                </PaginationItem>
-              ))}
-
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => updateSearch((prev) => ({
-                    ...prev,
-                    page: Math.min(prev.page + 1, totalPages),
-                  }))}
-                  disabled={search.page >= totalPages}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      ) : null}
+      {!loading && table.getFilteredRowModel().rows.length > 0 ? <DataTablePagination table={table} className="mt-auto rounded-xl border bg-card py-3" /> : null}
     </div>
   )
 }
 
-function FilterSelect({
-  value,
-  onValueChange,
-  placeholder,
-  options,
+function DataTableToolbar<TData>({
+  table,
+  searchPlaceholder,
+  searchValue,
+  onSearchChange,
+  filters,
+  statusFilter,
+  roleFilter,
+  bhsFilter,
+  passwordStateFilter,
+  onStatusFilterChange,
+  onRoleFilterChange,
+  onBhsFilterChange,
+  onPasswordStateFilterChange,
 }: {
-  value: string
-  onValueChange: (value: string) => void
-  placeholder: string
-  options: Array<{ value: string; label: string }>
+  table: ReturnType<typeof useReactTable<TData>>
+  searchPlaceholder: string
+  searchValue: string
+  onSearchChange: (value: string) => void
+  filters: Array<{ columnId: string; title: string; options: Array<{ label: string; value: string }> }>
+  statusFilter: AdminUsersStatusFilter
+  roleFilter: 'all' | UserRole
+  bhsFilter: string
+  passwordStateFilter: AdminUsersPasswordStateFilter
+  onStatusFilterChange: (value: AdminUsersStatusFilter) => void
+  onRoleFilterChange: (value: 'all' | UserRole) => void
+  onBhsFilterChange: (value: string) => void
+  onPasswordStateFilterChange: (value: AdminUsersPasswordStateFilter) => void
+}) {
+  const isFiltered = table.getState().columnFilters.length > 0 || Boolean(table.getState().globalFilter)
+
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:space-x-2">
+        <Input
+          placeholder={searchPlaceholder}
+          value={searchValue}
+          onChange={(event) => onSearchChange(event.target.value)}
+          className="h-10 w-full sm:w-[220px] lg:w-[250px]"
+        />
+        <div className="flex flex-wrap gap-2">
+          {filters.map((filter) => {
+            const column = table.getColumn(filter.columnId)
+            if (!column) return null
+            const selectedValue = filter.columnId === 'status'
+              ? statusFilter
+              : filter.columnId === 'role'
+                ? roleFilter
+                : filter.columnId === 'bhs'
+                  ? bhsFilter
+                  : passwordStateFilter
+
+            const onValueChange = filter.columnId === 'status'
+              ? (value: string) => onStatusFilterChange(value as AdminUsersStatusFilter)
+              : filter.columnId === 'role'
+                ? (value: string) => onRoleFilterChange(value as 'all' | UserRole)
+                : filter.columnId === 'bhs'
+                  ? onBhsFilterChange
+                  : (value: string) => onPasswordStateFilterChange(value as AdminUsersPasswordStateFilter)
+
+            return (
+              <DataTableFacetedFilter
+                key={filter.columnId}
+                column={column}
+                title={filter.title}
+                options={filter.options}
+                selectedValue={selectedValue}
+                onValueChange={onValueChange}
+              />
+            )
+          })}
+          {isFiltered ? (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                table.resetColumnFilters()
+                table.setGlobalFilter('')
+                onStatusFilterChange('all')
+                onRoleFilterChange('all')
+                onBhsFilterChange('all')
+                onPasswordStateFilterChange('all')
+              }}
+              className="h-10 px-3"
+            >
+              Reset
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      <DataTableViewOptions table={table} />
+    </div>
+  )
+}
+
+function DataTableColumnHeader<TData, TValue>({
+  column,
+  title,
+}: {
+  column: Column<TData, TValue>
+  title: string
+}) {
+  if (!column.getCanSort()) return <div>{title}</div>
+
+  return (
+    <div className="flex items-center space-x-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="h-8 data-[state=open]:bg-accent" />}>
+          <span>{title}</span>
+          {column.getIsSorted() === 'desc' ? (
+            <ArrowDown className="ms-2 size-4" />
+          ) : column.getIsSorted() === 'asc' ? (
+            <ArrowUp className="ms-2 size-4" />
+          ) : (
+            <ChevronsUpDown className="ms-2 size-4" />
+          )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
+            <ArrowUp className="size-4 text-muted-foreground/70" />
+            Asc
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
+            <ArrowDown className="size-4 text-muted-foreground/70" />
+            Desc
+          </DropdownMenuItem>
+          {column.getCanHide() ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
+                Hide
+              </DropdownMenuItem>
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
+function DataTableViewOptions<TData>({
+  table,
+}: {
+  table: ReturnType<typeof useReactTable<TData>>
 }) {
   return (
-    <Select value={value} onValueChange={(nextValue: string | null) => onValueChange(nextValue ?? '')}>
-      <SelectTrigger className="w-full min-w-36 lg:w-44">
-        <SelectValue placeholder={placeholder}>
-          {(selectedValue: string | null) => options.find((option) => option.value === selectedValue)?.label ?? placeholder}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="hidden h-10 lg:flex" />}>
+        <Filter className="size-4" />
+        View
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[180px]">
+        {table
+          .getAllColumns()
+          .filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide())
+          .map((column) => (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              checked={column.getIsVisible()}
+              onCheckedChange={(value) => column.toggleVisibility(Boolean(value))}
+            >
+              {column.id.replaceAll('_', ' ')}
+            </DropdownMenuCheckboxItem>
           ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function DataTableFacetedFilter<TData, TValue>({
+  column,
+  title,
+  options,
+  selectedValue,
+  onValueChange,
+}: {
+  column: Column<TData, TValue>
+  title: string
+  options: Array<{ label: string; value: string }>
+  selectedValue: string
+  onValueChange: (value: string) => void
+}) {
+  const facets = column.getFacetedUniqueValues?.()
+  const selectedOption = options.find((option) => option.value === selectedValue)
+
+  return (
+    <Popover>
+      <PopoverTrigger render={<Button variant="outline" size="sm" className="h-10 border-dashed" />}>
+        <span>{selectedOption?.label ?? title}</span>
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={title} />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => {
+                const isSelected = selectedValue === option.value
+                return (
+                  <CommandItem
+                    key={option.value}
+                    showIndicator={false}
+                    onSelect={() => onValueChange(isSelected ? 'all' : option.value)}
+                  >
+                    <div className={isSelected ? 'flex size-4 items-center justify-center rounded-sm border border-primary bg-primary text-primary-foreground' : 'flex size-4 items-center justify-center rounded-sm border border-primary opacity-50'}>
+                      <Check className={isSelected ? 'size-3.5 opacity-100' : 'size-3.5 opacity-0'} />
+                    </div>
+                    <span>{option.label}</span>
+                    {facets?.get(option.value) ? (
+                      <span className="ms-auto flex h-4 min-w-4 items-center justify-center font-mono text-xs">
+                        {facets.get(option.value)}
+                      </span>
+                    ) : null}
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+            {selectedValue ? (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem showIndicator={false} onSelect={() => onValueChange('all')} className="justify-center text-center">
+                    Clear filter
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            ) : null}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function DataTableRowActions({
+  row,
+  onManage,
+  onResetPassword,
+  onToggleStatus,
+}: {
+  row: Row<UserDirectoryRecord>
+  onManage: (user: UserDirectoryRecord) => void
+  onResetPassword: (user: UserDirectoryRecord) => void
+  onToggleStatus: (user: UserDirectoryRecord) => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="ghost" className="flex size-8 p-0 data-[state=open]:bg-muted" />}>
+        <MoreHorizontal className="size-4" />
+        <span className="sr-only">Open menu</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[180px]">
+        <DropdownMenuItem onClick={() => onManage(row.original)}>Manage user</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onResetPassword(row.original)}>Reset password</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onToggleStatus(row.original)} className={row.original.is_active ? 'text-destructive' : undefined}>
+          {row.original.is_active ? 'Deactivate user' : 'Activate user'}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function DataTablePagination<TData>({
+  table,
+  className,
+}: {
+  table: ReturnType<typeof useReactTable<TData>>
+  className?: string
+}) {
+  const currentPage = table.getState().pagination.pageIndex + 1
+  const totalPages = Math.max(table.getPageCount(), 1)
+  const pageNumbers = buildPaginationItems(currentPage, totalPages)
+
+  return (
+    <div className={`flex items-center justify-between overflow-clip px-4 ${className ?? ''}`}>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Rows per page</span>
+        <Select
+          value={`${table.getState().pagination.pageSize}`}
+          onValueChange={(value: string | null) => table.setPageSize(Number(value ?? table.getState().pagination.pageSize))}
+        >
+          <SelectTrigger className="h-8 w-[70px]">
+            <SelectValue placeholder={table.getState().pagination.pageSize} />
+          </SelectTrigger>
+          <SelectContent side="top">
+            {PAGE_SIZE_OPTIONS.map((pageSize) => (
+              <SelectItem key={pageSize} value={`${pageSize}`}>
+                {pageSize}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="hidden text-sm font-medium text-muted-foreground md:block">
+          Page {currentPage} of {totalPages}
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" className="size-8 p-0" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+            <ChevronsLeft className="size-4" />
+          </Button>
+          <Button variant="outline" className="size-8 p-0" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          {pageNumbers.map((pageNumber, index) => (
+            <div key={`${pageNumber}-${index}`} className="flex items-center">
+              {pageNumber === '...' ? (
+                <span className="px-1 text-sm text-muted-foreground">...</span>
+              ) : (
+                <Button variant={currentPage === pageNumber ? 'default' : 'outline'} className="h-8 min-w-8 px-2" onClick={() => table.setPageIndex(Number(pageNumber) - 1)}>
+                  {pageNumber}
+                </Button>
+              )}
+            </div>
+          ))}
+          <Button variant="outline" className="size-8 p-0" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            <ChevronRight className="size-4" />
+          </Button>
+          <Button variant="outline" className="size-8 p-0" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+            <ChevronsRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
   return (
-    <Badge
-      variant="outline"
-      className={isActive
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : 'border-rose-200 bg-rose-50 text-rose-700'}
-    >
+    <Badge variant="outline" className={isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}>
       {isActive ? 'Active' : 'Inactive'}
     </Badge>
   )
@@ -677,12 +758,10 @@ function NoResults() {
     <Empty className="border-0 rounded-none">
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <AlertCircle />
+          <Search />
         </EmptyMedia>
         <EmptyTitle>No users match these filters</EmptyTitle>
-        <EmptyDescription>
-          Try a different username, role, status, BHS, or password state.
-        </EmptyDescription>
+        <EmptyDescription>Try a different search term or adjust the current filters.</EmptyDescription>
       </EmptyHeader>
       <EmptyContent />
     </Empty>
@@ -690,17 +769,8 @@ function NoResults() {
 }
 
 function buildPaginationItems(currentPage: number, totalPages: number) {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1)
-  }
-
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 5, 'ellipsis', totalPages] as const
-  }
-
-  if (currentPage >= totalPages - 3) {
-    return [1, 'ellipsis', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages] as const
-  }
-
-  return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages] as const
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1)
+  if (currentPage <= 4) return [1, 2, 3, 4, 5, '...', totalPages]
+  if (currentPage >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+  return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages]
 }

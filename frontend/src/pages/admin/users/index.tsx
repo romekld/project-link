@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { ShieldAlert } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { ShieldAlert, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseFunctionHeaders } from '@/lib/supabase-function-headers'
@@ -18,6 +18,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input'
 import { useSetPageMeta } from '@/contexts/page-context'
 import { UsersDataTable, type UserDirectoryRecord } from './components/users-data-table'
+import { DEFAULT_ADMIN_USERS_SEARCH } from './search'
 
 interface StatusDialogState {
   user: UserDirectoryRecord
@@ -160,13 +161,17 @@ export function UserListPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">User List</h1>
           <p className="text-sm text-muted-foreground">
             Manage staff accounts, review their status, and keep role assignments clean across all health stations.
           </p>
         </div>
+        <Button size="lg" nativeButton={false} render={<Link to="/admin/users/new" search={DEFAULT_ADMIN_USERS_SEARCH} />}>
+          Add User
+          <UserPlus data-icon="inline-end" />
+        </Button>
       </div>
 
       {loadError ? (

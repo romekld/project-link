@@ -1,4 +1,8 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"D:/project-link/.claude/statusline-command.sh\""
+  },
   "enabledPlugins": {
     "claude-mem@thedotmack": true,
     "context7@claude-plugins-official": true,
