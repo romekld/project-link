@@ -1,9 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { failure, ok, parseJsonBody, requireCaller, corsHeaders } from '../_shared/common.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,43 +6,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify caller is system_admin
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const caller = await requireCaller(req, ['system_admin'])
+    if (caller instanceof Response) {
+      return caller
     }
 
-    // Use the caller's JWT to verify role
-    const callerClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser()
-    if (callerError || !caller) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const { adminClient, userId: callerUserId } = caller
+    const body = await parseJsonBody(req)
+    if (!body || typeof body !== 'object') {
+      return failure(400, 'invalid_body', 'Request body must be valid JSON.')
     }
 
-    const callerRole =
-      caller.app_metadata?.app_role ??
-      caller.app_metadata?.role
-
-    if (callerRole !== 'system_admin') {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Forbidden: system_admin role required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Parse request body
-    const body = await req.json()
     const {
       email,
       password,
@@ -72,53 +41,30 @@ Deno.serve(async (req) => {
     const normalizedLastName = typeof last_name === 'string' ? last_name.trim() : ''
     const normalizedUsername = typeof username === 'string' ? username.trim() : ''
 
-    // Validate required fields
     if (!normalizedEmail || !password || !normalizedFirstName || !normalizedLastName || !normalizedUsername || !date_of_birth || !sex || !role) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Missing required fields' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_required_fields', 'Complete all required fields before creating the user.')
     }
 
     if (!['M', 'F'].includes(sex)) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Sex must be either M or F.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'invalid_sex', 'Sex must be either M or F.')
     }
 
     if (mobile_number && !/^\+639\d{9}$/.test(mobile_number)) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Mobile number must be in +639XXXXXXXXX format.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'invalid_mobile_number', 'Mobile number must be in +639XXXXXXXXX format.')
     }
 
     if (alternate_mobile_number && !/^\+639\d{9}$/.test(alternate_mobile_number)) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Alternate mobile number must be in +639XXXXXXXXX format.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'invalid_alternate_mobile_number', 'Alternate mobile number must be in +639XXXXXXXXX format.')
     }
 
     const needsStation = ['bhw', 'midwife_rhm'].includes(role)
     if (needsStation && !health_station_id) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'BHS assignment is required for this role.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_health_station', 'BHS assignment is required for this role.')
     }
 
     const normalizedStationId = needsStation ? health_station_id : null
     const normalizedPurokAssignment = role === 'bhw' ? (purok_assignment ?? null) : null
 
-    // Use service role client for admin operations
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Create auth user
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: normalizedEmail,
       password,
@@ -130,13 +76,9 @@ Deno.serve(async (req) => {
     })
 
     if (authError || !authData.user) {
-      return new Response(
-        JSON.stringify({ data: null, error: authError?.message ?? 'Failed to create auth user' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'auth_user_create_failed', authError?.message ?? 'Failed to create auth user.')
     }
 
-    // Insert user_profiles row
     const { data: profile, error: profileError } = await adminClient
       .from('user_profiles')
       .insert({
@@ -157,29 +99,23 @@ Deno.serve(async (req) => {
         coverage_notes: coverage_notes ?? null,
         admin_notes: admin_notes ?? null,
         must_change_password: true,
-        created_by: caller.id,
-        updated_by: caller.id,
+        created_by: callerUserId,
+        updated_by: callerUserId,
       })
       .select()
       .single()
 
     if (profileError) {
-      // Clean up auth user if profile insert fails
       await adminClient.auth.admin.deleteUser(authData.user.id)
-      return new Response(
-        JSON.stringify({ data: null, error: profileError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'profile_create_failed', profileError.message)
     }
 
-    return new Response(
-      JSON.stringify({ data: profile, error: null }),
-      { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch {
-    return new Response(
-      JSON.stringify({ data: null, error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    return ok(profile, {}, 201)
+  } catch (error) {
+    return failure(
+      500,
+      'internal_error',
+      error instanceof Error ? error.message : 'Internal server error',
     )
   }
 })

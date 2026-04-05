@@ -1,9 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { failure, ok, parseJsonBody, requireCaller, corsHeaders } from '../_shared/common.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,50 +6,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const caller = await requireCaller(req, ['system_admin'])
+    if (caller instanceof Response) {
+      return caller
     }
 
-    const callerClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser()
-    if (callerError || !caller) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const { adminClient, userId: callerUserId } = caller
+    const body = await parseJsonBody(req)
+    if (!body || typeof body !== 'object') {
+      return failure(400, 'invalid_body', 'Request body must be valid JSON.')
     }
 
-    const callerRole = caller.app_metadata?.app_role ?? caller.app_metadata?.role
-    if (callerRole !== 'system_admin') {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Forbidden: system_admin role required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const body = await req.json()
     const userId = typeof body.id === 'string' ? body.id : null
 
     if (!userId) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'User id is required.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_user_id', 'User id is required.')
     }
-
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
 
     const { data: existing, error: existingError } = await adminClient
       .from('user_profiles')
@@ -63,10 +30,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (existingError || !existing) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'User not found.' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(404, 'user_not_found', 'User not found.')
     }
 
     const normalizedFirstName = typeof body.first_name === 'string' ? body.first_name.trim() : existing.first_name
@@ -97,59 +61,35 @@ Deno.serve(async (req) => {
       : body.deactivation_reason ?? existing.deactivation_reason
 
     if (!normalizedFirstName) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'First name is required.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_first_name', 'First name is required.')
     }
 
     if (!normalizedLastName) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Last name is required.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_last_name', 'Last name is required.')
     }
 
     if (!effectiveEmail) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Email is required.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_email', 'Email is required.')
     }
 
     if (!['M', 'F'].includes(body.sex ?? existing.sex)) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Sex must be either M or F.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'invalid_sex', 'Sex must be either M or F.')
     }
 
     if (normalizedMobileNumber && !/^\+639\d{9}$/.test(normalizedMobileNumber)) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Mobile number must be in +639XXXXXXXXX format.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'invalid_mobile_number', 'Mobile number must be in +639XXXXXXXXX format.')
     }
 
     if (normalizedAlternateMobileNumber && !/^\+639\d{9}$/.test(normalizedAlternateMobileNumber)) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Alternate mobile number must be in +639XXXXXXXXX format.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'invalid_alternate_mobile_number', 'Alternate mobile number must be in +639XXXXXXXXX format.')
     }
 
     if (['bhw', 'midwife_rhm'].includes(effectiveRole) && !effectiveStationId) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'BHS assignment is required for this role.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_health_station', 'BHS assignment is required for this role.')
     }
 
     if (!effectiveIsActive && !effectiveDeactivationReason) {
-      return new Response(
-        JSON.stringify({ data: null, error: 'Deactivation reason is required when deactivating a user.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'missing_deactivation_reason', 'Deactivation reason is required when deactivating a user.')
     }
 
     if (effectiveEmail !== existing.email) {
@@ -162,10 +102,7 @@ Deno.serve(async (req) => {
       })
 
       if (authUpdateError) {
-        return new Response(
-          JSON.stringify({ data: null, error: authUpdateError.message }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return failure(400, 'auth_user_update_failed', authUpdateError.message)
       }
     }
 
@@ -193,7 +130,7 @@ Deno.serve(async (req) => {
       deactivation_reason: effectiveDeactivationReason,
       profile_photo_path: body.profile_photo_path ?? existing.profile_photo_path,
       profile_photo_updated_at: body.profile_photo_path !== undefined ? new Date().toISOString() : existing.profile_photo_updated_at,
-      updated_by: caller.id,
+      updated_by: callerUserId,
       updated_at: new Date().toISOString(),
     }
 
@@ -205,20 +142,15 @@ Deno.serve(async (req) => {
       .single()
 
     if (updateError) {
-      return new Response(
-        JSON.stringify({ data: null, error: updateError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return failure(400, 'profile_update_failed', updateError.message)
     }
 
-    return new Response(
-      JSON.stringify({ data: updatedProfile, error: null }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch {
-    return new Response(
-      JSON.stringify({ data: null, error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    return ok(updatedProfile)
+  } catch (error) {
+    return failure(
+      500,
+      'internal_error',
+      error instanceof Error ? error.message : 'Internal server error',
     )
   }
 })

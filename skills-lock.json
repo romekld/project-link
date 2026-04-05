@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "9ee6d37669b89f87bb0b1e1f89bf06cca35d69d461786a3fb847b07c4f2c8375"
     },
+    "excalidraw-diagram-generator": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "e24e3c4cab4b5a07bc1d1801db14868f3a1cd184f7f28f5dd2c4a2b234bf2f2d"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -16,10 +21,20 @@
       "sourceType": "github",
       "computedHash": "d85881e7b2f6e9c718d45ac9954c1d8e05e21f9b6f3ca58062ae80f89474750b"
     },
+    "mcp-builder": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "f08cbdec74dba480ec5217363446dae154b7576b8c3d9b4cb17aff234f15973b"
+    },
     "mermaid-diagrams": {
       "source": "softaworks/agent-toolkit",
       "sourceType": "github",
       "computedHash": "b6c206a3cab0333a1d3d3cf27114099d0d5f25eb07d86c8f12472b7aa7d59a4c"
+    },
+    "pdf": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "37226d4220d844377e6b2a386c51a011df4cd130855ff0b80bcc22f9c28abd57"
     },
     "shadcn": {
       "source": "shadcn/ui",
@@ -50,6 +65,11 @@
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "computedHash": "6337038fe1fe6bbe1b9f252ab678ee575859190bab6f0f246f4061824eb40875"
+    },
+    "using-superpowers": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "e0eced9fbb205c212f420aded0c6f2bf5d5f059254679a8459b4fe72390160be"
     },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",

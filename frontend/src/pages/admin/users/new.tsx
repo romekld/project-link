@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSetPageMeta } from '@/contexts/page-context'
 import { UserForm } from './components/user-form'
+import { DEFAULT_ADMIN_USERS_SEARCH } from './search'
 
 export function CreateUserPage() {
   useSetPageMeta({
@@ -18,7 +19,7 @@ export function CreateUserPage() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/admin/users" />} className="-ml-1">
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/admin/users" search={DEFAULT_ADMIN_USERS_SEARCH} />} className="-ml-1">
           <ChevronLeft data-icon="inline-start" />
           Back to Users
         </Button>

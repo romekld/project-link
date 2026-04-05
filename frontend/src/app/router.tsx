@@ -454,6 +454,7 @@ import { AdminDashboardPage } from '@/pages/admin/dashboard'
 import { UserListPage } from '@/pages/admin/users/index'
 import { CreateUserPage } from '@/pages/admin/users/new'
 import { EditUserPage } from '@/pages/admin/users/$id.edit'
+import { validateAdminUsersSearch } from '@/pages/admin/users/search'
 
 const adminLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -469,6 +470,7 @@ const adminDashboardRoute = createRoute({
 const adminUsersRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: '/users',
+  validateSearch: validateAdminUsersSearch,
   component: UserListPage,
 })
 const adminUsersNewRoute = createRoute({

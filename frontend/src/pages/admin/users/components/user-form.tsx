@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { AlertCircle, ImagePlus, Info, ShieldCheck, Upload } from 'lucide-react'
+import { AlertCircle, Check, ChevronsUpDown, ImagePlus, Info, ShieldCheck, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { getApiErrorMessage, getSupabaseFunctionErrorMessage } from '@/lib/supabase-function-errors'
 import { getSupabaseFunctionHeaders } from '@/lib/supabase-function-headers'
 import {
   buildUserPhotoPath,
@@ -23,6 +24,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DatePicker } from '@/components/ui/date-picker'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import {
   Select,
   SelectContent,
@@ -35,6 +38,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import type { UserProfile, UserRole } from '@/types'
 import { UserAvatar } from '@/components/user-avatar'
+import { DEFAULT_ADMIN_USERS_SEARCH } from '../search'
 
 interface HealthStation {
   id: string
@@ -123,8 +127,12 @@ const EMPTY_FORM: UserFormValues = {
   password: '',
 }
 
+const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024
+const PROFILE_PHOTO_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 export function UserForm({ mode, userId }: UserFormProps) {
   const navigate = useNavigate()
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
   const [form, setForm] = useState<UserFormValues>(EMPTY_FORM)
   const [healthStations, setHealthStations] = useState<HealthStation[]>([])
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
@@ -134,6 +142,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
   const [loading, setLoading] = useState(mode === 'edit')
   const [saving, setSaving] = useState(false)
   const [usernameTouched, setUsernameTouched] = useState(mode === 'edit')
@@ -224,6 +233,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
   const needsStation = STATION_REQUIRED_ROLES.includes(form.role as UserRole)
   const showPurok = form.role === 'bhw'
   const roleDetails = form.role ? ROLE_DESCRIPTIONS[form.role] : null
+  const selectedHealthStationName = healthStations.find((station) => station.id === form.health_station_id)?.name ?? ''
   const displayName = formatUserDisplayName({
     first_name: form.first_name || 'New',
     middle_name: form.middle_name || null,
@@ -241,6 +251,30 @@ export function UserForm({ mode, userId }: UserFormProps) {
 
   const setFormValue = <K extends keyof UserFormValues>(key: K, value: UserFormValues[K]) => {
     setForm((current) => ({ ...current, [key]: value }))
+  }
+
+  const handlePhotoSelection = (file: File | null) => {
+    if (!file) {
+      setSelectedPhotoFile(null)
+      setPhotoError(null)
+      return
+    }
+
+    if (!PROFILE_PHOTO_ACCEPTED_TYPES.includes(file.type)) {
+      setSelectedPhotoFile(null)
+      setPhotoError('Profile photo must be a JPG, PNG, or WEBP image.')
+      return
+    }
+
+    if (file.size > PROFILE_PHOTO_MAX_BYTES) {
+      setSelectedPhotoFile(null)
+      setPhotoError('Profile photo must be 2 MB or smaller.')
+      return
+    }
+
+    setSelectedPhotoFile(file)
+    setRemovePhoto(false)
+    setPhotoError(null)
   }
 
   const validateForm = () => {
@@ -339,6 +373,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setSubmitError(null)
+    setPhotoError(null)
 
     const nextErrors = validateForm()
     setFieldErrors(nextErrors)
@@ -375,13 +410,26 @@ export function UserForm({ mode, userId }: UserFormProps) {
           headers,
         })
 
-        if (error || data?.error) {
-          throw new Error(data?.error ?? error?.message ?? 'Failed to create user.')
+        if (error) {
+          throw error
+        }
+
+        if (data?.error) {
+          throw new Error(getApiErrorMessage(data.error, 'Failed to create user.'))
         }
 
         const createdProfile = data.data as UserProfile
         if (selectedPhotoFile) {
-          await syncPhotoPath(createdProfile.id, headers)
+          try {
+            await syncPhotoPath(createdProfile.id, headers)
+          } catch (photoSyncError) {
+            toast.error(
+              await getSupabaseFunctionErrorMessage(
+                photoSyncError,
+                'User was created, but the profile photo could not be saved.',
+              ),
+            )
+          }
         }
 
         toast.success('User created.')
@@ -415,8 +463,12 @@ export function UserForm({ mode, userId }: UserFormProps) {
         headers,
       })
 
-      if (error || data?.error) {
-        throw new Error(data?.error ?? error?.message ?? 'Failed to save user changes.')
+      if (error) {
+        throw error
+      }
+
+      if (data?.error) {
+        throw new Error(getApiErrorMessage(data.error, 'Failed to save user changes.'))
       }
 
       const updatedProfile = data.data as UserProfile
@@ -437,7 +489,12 @@ export function UserForm({ mode, userId }: UserFormProps) {
 
       toast.success('User changes saved.')
     } catch (caughtError) {
-      setSubmitError(caughtError instanceof Error ? caughtError.message : 'Failed to save user changes.')
+      setSubmitError(
+        await getSupabaseFunctionErrorMessage(
+          caughtError,
+          mode === 'create' ? 'Failed to create user.' : 'Failed to save user changes.',
+        ),
+      )
     } finally {
       setSaving(false)
     }
@@ -493,6 +550,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
                   id="first-name"
                   value={form.first_name}
                   onChange={(event) => setFormValue('first_name', event.target.value)}
+                  placeholder="Juana"
                   aria-invalid={fieldErrors.first_name ? true : undefined}
                 />
                 <FieldError>{fieldErrors.first_name}</FieldError>
@@ -504,6 +562,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
                   id="middle-name"
                   value={form.middle_name}
                   onChange={(event) => setFormValue('middle_name', event.target.value)}
+                  placeholder="Santos"
                 />
                 <FieldDescription>Optional.</FieldDescription>
               </Field>
@@ -514,6 +573,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
                   id="last-name"
                   value={form.last_name}
                   onChange={(event) => setFormValue('last_name', event.target.value)}
+                  placeholder="Dela Cruz"
                   aria-invalid={fieldErrors.last_name ? true : undefined}
                 />
                 <FieldError>{fieldErrors.last_name}</FieldError>
@@ -532,7 +592,12 @@ export function UserForm({ mode, userId }: UserFormProps) {
 
               <Field data-invalid={fieldErrors.date_of_birth ? true : undefined}>
                 <FieldLabel htmlFor="date-of-birth">Date of birth</FieldLabel>
-                <DatePicker id="date-of-birth" value={form.date_of_birth} onChange={(value) => setFormValue('date_of_birth', value)} />
+                <DatePicker
+                  id="date-of-birth"
+                  value={form.date_of_birth}
+                  onChange={(value) => setFormValue('date_of_birth', value)}
+                  placeholder="Select date of birth"
+                />
                 <FieldError>{fieldErrors.date_of_birth}</FieldError>
               </Field>
 
@@ -540,7 +605,13 @@ export function UserForm({ mode, userId }: UserFormProps) {
                 <FieldLabel htmlFor="sex">Sex</FieldLabel>
                 <Select value={form.sex} onValueChange={(value) => setFormValue('sex', value as 'M' | 'F')}>
                   <SelectTrigger id="sex" aria-invalid={fieldErrors.sex ? true : undefined}>
-                    <SelectValue placeholder="Select sex" />
+                    <SelectValue placeholder="Select sex">
+                      {(value: string | null) => {
+                        if (value === 'M') return 'Male'
+                        if (value === 'F') return 'Female'
+                        return 'Select sex'
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -566,6 +637,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
                   type="email"
                   value={form.email}
                   onChange={(event) => setFormValue('email', event.target.value)}
+                  placeholder="juana.delacruz@cho2.gov.ph"
                   aria-invalid={fieldErrors.email ? true : undefined}
                 />
                 <FieldDescription>Used for sign-in and admin alerts.</FieldDescription>
@@ -652,7 +724,9 @@ export function UserForm({ mode, userId }: UserFormProps) {
                   }}
                 >
                   <SelectTrigger id="role" aria-invalid={fieldErrors.role ? true : undefined}>
-                    <SelectValue placeholder="Select a role" />
+                    <SelectValue placeholder="Select a role">
+                      {(value: string | null) => (value ? getRoleLabel(value as UserRole) : 'Select a role')}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -728,28 +802,14 @@ export function UserForm({ mode, userId }: UserFormProps) {
             <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field data-invalid={fieldErrors.health_station_id ? true : undefined}>
                 <FieldLabel htmlFor="health-station">BHS assignment</FieldLabel>
-                <Select
-                  value={form.health_station_id || 'none'}
-                  onValueChange={(value) => setFormValue('health_station_id', !value || value === 'none' ? '' : value)}
-                >
-                  <SelectTrigger
-                    id="health-station"
-                    aria-invalid={fieldErrors.health_station_id ? true : undefined}
-                    disabled={!needsStation}
-                  >
-                    <SelectValue placeholder={needsStation ? 'Select a health station' : 'Not required for this role'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {!needsStation ? <SelectItem value="none">Not required for this role</SelectItem> : null}
-                      {healthStations.map((station) => (
-                        <SelectItem key={station.id} value={station.id}>
-                          {station.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <HealthStationCombobox
+                  id="health-station"
+                  ariaInvalid={fieldErrors.health_station_id ? true : undefined}
+                  disabled={!needsStation}
+                  value={form.health_station_id}
+                  stations={healthStations}
+                  onChange={(value) => setFormValue('health_station_id', value)}
+                />
                 <FieldError>{fieldErrors.health_station_id}</FieldError>
               </Field>
 
@@ -799,7 +859,13 @@ export function UserForm({ mode, userId }: UserFormProps) {
             <Button type="submit" size="lg" disabled={saving}>
               {saving ? 'Saving...' : mode === 'create' ? 'Create user' : 'Save changes'}
             </Button>
-            <Button type="button" variant="outline" size="lg" onClick={() => navigate({ to: '/admin/users' })} disabled={saving}>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => navigate({ to: '/admin/users', search: DEFAULT_ADMIN_USERS_SEARCH })}
+              disabled={saving}
+            >
               Back to users
             </Button>
           </div>
@@ -811,6 +877,13 @@ export function UserForm({ mode, userId }: UserFormProps) {
               <CardDescription>Optional, but helpful for recognition and safer account selection.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
+              {photoError ? (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertTitle>Photo not ready</AlertTitle>
+                  <AlertDescription>{photoError}</AlertDescription>
+                </Alert>
+              ) : null}
               <div className="flex items-center gap-4">
                 <UserAvatar
                   firstName={form.first_name || 'N'}
@@ -820,28 +893,31 @@ export function UserForm({ mode, userId }: UserFormProps) {
                   size="lg"
                 />
                 <div className="flex flex-col gap-2">
-                  <label className="inline-flex">
-                    <input
-                      className="sr-only"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] ?? null
-                        setSelectedPhotoFile(file)
-                        setRemovePhoto(false)
-                      }}
-                    />
-                    <Button type="button" variant="outline">
-                      <Upload data-icon="inline-start" />
-                      {selectedPhotoFile || currentPhotoPath ? 'Replace photo' : 'Upload photo'}
-                    </Button>
-                  </label>
+                  <input
+                    ref={photoInputRef}
+                    className="sr-only"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(event) => {
+                      handlePhotoSelection(event.target.files?.[0] ?? null)
+                      event.currentTarget.value = ''
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    <Upload data-icon="inline-start" />
+                    {selectedPhotoFile || currentPhotoPath ? 'Replace photo' : 'Upload photo'}
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={() => {
                       setSelectedPhotoFile(null)
                       setRemovePhoto(true)
+                      setPhotoError(null)
                     }}
                     disabled={!currentPhotoPath && !selectedPhotoFile}
                   >
@@ -867,7 +943,7 @@ export function UserForm({ mode, userId }: UserFormProps) {
               <SidebarDatum
                 label="Scope"
                 value={needsStation
-                  ? healthStations.find((station) => station.id === form.health_station_id)?.name ?? 'Choose a health station'
+                  ? selectedHealthStationName || 'Choose a health station'
                   : 'City-wide'}
               />
               <SidebarDatum
@@ -944,6 +1020,106 @@ function SidebarDatum({ label, value }: { label: string; value: string }) {
       <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
       <span>{value}</span>
     </div>
+  )
+}
+
+function HealthStationCombobox({
+  id,
+  ariaInvalid,
+  disabled,
+  value,
+  stations,
+  onChange,
+}: {
+  id: string
+  ariaInvalid?: boolean
+  disabled: boolean
+  value: string
+  stations: HealthStation[]
+  onChange: (value: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const normalizedSearch = search.trim().toLowerCase()
+  const selectedStation = stations.find((station) => station.id === value) ?? null
+  const filteredStations = normalizedSearch
+    ? stations.filter((station) => station.name.toLowerCase().includes(normalizedSearch))
+    : stations
+
+  useEffect(() => {
+    if (!open && search) {
+      setSearch('')
+    }
+  }, [open, search])
+
+  return (
+    <Popover open={disabled ? false : open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-invalid={ariaInvalid}
+            disabled={disabled}
+            className="w-full justify-between gap-2 px-2.5 font-normal"
+          />
+        }
+      >
+        <span
+          title={selectedStation?.name ?? undefined}
+          className={selectedStation
+            ? 'min-w-0 flex-1 truncate text-left'
+            : 'min-w-0 flex-1 truncate text-left text-muted-foreground'}
+        >
+          {disabled
+            ? 'Not required for this role'
+            : selectedStation?.name ?? 'Select a health station'}
+        </span>
+        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[min(32rem,calc(100vw-2rem))] min-w-[18rem] p-0"
+      >
+        <Command shouldFilter={false} className="rounded-lg">
+          <CommandInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder="Search health station"
+          />
+          <CommandList className="max-h-72 [scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
+            <CommandEmpty>No health station found.</CommandEmpty>
+            <CommandGroup>
+              {filteredStations.map((station) => (
+                <CommandItem
+                  key={station.id}
+                  value={station.id}
+                  onSelect={() => {
+                    onChange(station.id)
+                    setOpen(false)
+                  }}
+                  showIndicator={false}
+                  className="items-start gap-3 py-2.5"
+                >
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <Check
+                      className={value === station.id ? 'mt-0.5 size-4 shrink-0 opacity-100' : 'mt-0.5 size-4 shrink-0 opacity-0'}
+                    />
+                    <span className="whitespace-normal break-words leading-5">
+                      {station.name}
+                    </span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
 

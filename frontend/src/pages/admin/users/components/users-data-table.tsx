@@ -1,29 +1,28 @@
-import { useDeferredValue, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
-  type ColumnFiltersState,
+  type PaginationState,
+  type RowSelectionState,
   type SortingState,
-  type VisibilityState,
 } from '@tanstack/react-table'
-import { AlertCircle, ArrowUpDown, Columns3, MoreHorizontal, Search, ShieldAlert, UserCog, KeyRound } from 'lucide-react'
+import {
+  ArrowUpDown,
+  ArrowUpRight,
+  AlertCircle,
+  KeyRound,
+  Search,
+  ShieldAlert,
+} from 'lucide-react'
 import type { UserProfile, UserRole } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Empty,
   EmptyContent,
@@ -33,7 +32,15 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import {
   Select,
   SelectContent,
@@ -53,6 +60,11 @@ import {
 } from '@/components/ui/table'
 import { UserAvatar } from '@/components/user-avatar'
 import { formatDateTime, formatUserDisplayName, getRoleLabel } from '@/lib/user-profiles'
+import type {
+  AdminUsersPasswordStateFilter,
+  AdminUsersSearch,
+  AdminUsersStatusFilter,
+} from '../search'
 
 export interface UserDirectoryRecord extends UserProfile {
   health_station_name?: string | null
@@ -67,9 +79,18 @@ interface UsersDataTableProps {
   onResetPassword: (user: UserDirectoryRecord) => void
 }
 
-type StatusFilter = 'all' | 'active' | 'inactive'
-type PasswordFilter = 'all' | 'pending' | 'complete'
-type LoginFilter = 'all' | 'never' | 'signed-in'
+const ROLE_OPTIONS: Array<{ value: 'all' | UserRole; label: string }> = [
+  { value: 'all', label: 'All roles' },
+  { value: 'system_admin', label: getRoleLabel('system_admin') },
+  { value: 'city_health_officer', label: getRoleLabel('city_health_officer') },
+  { value: 'phis_coordinator', label: getRoleLabel('phis_coordinator') },
+  { value: 'dso', label: getRoleLabel('dso') },
+  { value: 'nurse_phn', label: getRoleLabel('nurse_phn') },
+  { value: 'midwife_rhm', label: getRoleLabel('midwife_rhm') },
+  { value: 'bhw', label: getRoleLabel('bhw') },
+]
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50]
 
 export function UsersDataTable({
   users,
@@ -79,48 +100,81 @@ export function UsersDataTable({
   onToggleStatus,
   onResetPassword,
 }: UsersDataTableProps) {
-  const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [stationFilter, setStationFilter] = useState<string>('all')
-  const [passwordFilter, setPasswordFilter] = useState<PasswordFilter>('all')
-  const [loginFilter, setLoginFilter] = useState<LoginFilter>('all')
+  const search = useSearch({ from: '/admin/users' })
+  const navigate = useNavigate({ from: '/admin/users' })
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
-  const deferredSearch = useDeferredValue(search)
+  const updateSearch = useCallback((updater: (prev: AdminUsersSearch) => AdminUsersSearch) => {
+    navigate({
+      search: (prev) => updater(prev as AdminUsersSearch),
+      replace: true,
+    })
+  }, [navigate])
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = deferredSearch.trim() === ''
-      || formatUserDisplayName(user).toLowerCase().includes(deferredSearch.trim().toLowerCase())
-      || user.user_id.toLowerCase().includes(deferredSearch.trim().toLowerCase())
-      || user.username.toLowerCase().includes(deferredSearch.trim().toLowerCase())
-      || user.email.toLowerCase().includes(deferredSearch.trim().toLowerCase())
+  const filteredUsers = useMemo(() => {
+    const normalizedSearch = search.q.trim().toLowerCase()
 
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    const matchesStatus = statusFilter === 'all'
-      || (statusFilter === 'active' && user.is_active)
-      || (statusFilter === 'inactive' && !user.is_active)
-    const matchesStation = stationFilter === 'all' || user.health_station_id === stationFilter
-    const matchesPassword = passwordFilter === 'all'
-      || (passwordFilter === 'pending' && user.must_change_password)
-      || (passwordFilter === 'complete' && !user.must_change_password)
-    const matchesLogin = loginFilter === 'all'
-      || (loginFilter === 'never' && !user.last_login_at)
-      || (loginFilter === 'signed-in' && Boolean(user.last_login_at))
+    return users.filter((user) => {
+      const displayName = formatUserDisplayName(user).toLowerCase()
+      const matchesSearch = normalizedSearch === ''
+        || displayName.includes(normalizedSearch)
+        || user.username.toLowerCase().includes(normalizedSearch)
+        || user.email.toLowerCase().includes(normalizedSearch)
+        || user.user_id.toLowerCase().includes(normalizedSearch)
 
-    return matchesSearch && matchesRole && matchesStatus && matchesStation && matchesPassword && matchesLogin
-  })
+      const matchesStatus = search.status === 'all'
+        || (search.status === 'active' && user.is_active)
+        || (search.status === 'inactive' && !user.is_active)
 
-  const columns: ColumnDef<UserDirectoryRecord>[] = [
+      const matchesRole = search.role === 'all' || user.role === search.role
+      const matchesBhs = search.bhs === 'all' || user.health_station_id === search.bhs
+      const matchesPasswordState = search.passwordState === 'all'
+        || (search.passwordState === 'pending' && user.must_change_password)
+        || (search.passwordState === 'complete' && !user.must_change_password)
+
+      return matchesSearch && matchesStatus && matchesRole && matchesBhs && matchesPasswordState
+    })
+  }, [search.bhs, search.passwordState, search.q, search.role, search.status, users])
+
+  const pagination = useMemo<PaginationState>(() => ({
+    pageIndex: Math.max(search.page - 1, 0),
+    pageSize: search.pageSize,
+  }), [search.page, search.pageSize])
+
+  const columns = useMemo<ColumnDef<UserDirectoryRecord>[]>(() => [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(Boolean(value))}
+          aria-label="Select all visible users"
+          className="translate-y-[2px]"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
+          aria-label={`Select ${formatUserDisplayName(row.original)}`}
+          className="translate-y-[2px]"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'username',
+      header: 'Username',
+      cell: ({ row }) => <span className="font-medium text-foreground">{row.original.username}</span>,
+    },
     {
       id: 'name',
       accessorFn: (row) => formatUserDisplayName(row),
-      header: 'User',
-      enableHiding: false,
+      header: 'Name',
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <UserAvatar
             firstName={row.original.first_name}
             lastName={row.original.last_name}
@@ -128,273 +182,275 @@ export function UsersDataTable({
           />
           <div className="flex min-w-0 flex-col">
             <span className="truncate font-medium">{formatUserDisplayName(row.original)}</span>
-            <span className="truncate text-sm text-muted-foreground">{row.original.email}</span>
+            <span className="truncate text-xs text-muted-foreground">{row.original.user_id}</span>
           </div>
         </div>
       ),
     },
     {
-      accessorKey: 'user_id',
-      header: 'User ID',
-      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.user_id}</span>,
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">{row.original.email}</span>
+      ),
     },
     {
-      accessorKey: 'username',
-      header: 'Username',
-      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.username}</span>,
-    },
-    {
-      accessorKey: 'role',
-      header: 'Role',
-      cell: ({ row }) => <Badge variant="secondary">{getRoleLabel(row.original.role)}</Badge>,
+      id: 'mobile_number',
+      accessorFn: (row) => row.mobile_number ?? '',
+      header: 'Phone Number',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.mobile_number ?? 'Not recorded'}
+        </span>
+      ),
+      enableSorting: false,
     },
     {
       accessorKey: 'health_station_name',
       header: 'BHS',
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{row.original.health_station_name ?? 'City-wide'}</span>
+        <span className="text-sm text-muted-foreground">
+          {row.original.health_station_name ?? 'City-wide'}
+        </span>
       ),
+      enableSorting: false,
     },
     {
       id: 'status',
       accessorFn: (row) => (row.is_active ? 'Active' : 'Inactive'),
       header: 'Status',
       cell: ({ row }) => (
-        <Badge variant={row.original.is_active ? 'default' : 'destructive'}>
-          {row.original.is_active ? 'Active' : 'Inactive'}
-        </Badge>
+        <StatusBadge isActive={row.original.is_active} />
       ),
+      enableSorting: false,
     },
     {
-      id: 'password_state',
-      accessorFn: (row) => (row.must_change_password ? 'Pending' : 'Cleared'),
-      header: 'Password',
+      accessorKey: 'role',
+      header: 'Role',
       cell: ({ row }) => (
-        <Badge variant={row.original.must_change_password ? 'outline' : 'secondary'}>
-          {row.original.must_change_password ? 'Change pending' : 'Updated'}
-        </Badge>
+        <span className="text-sm text-foreground">{getRoleLabel(row.original.role)}</span>
       ),
+      enableSorting: false,
     },
     {
       id: 'last_login_at',
       accessorFn: (row) => row.last_login_at ?? '',
-      header: 'Last login',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{formatDateTime(row.original.last_login_at)}</span>
-      ),
-    },
-    {
-      id: 'updated_at',
-      accessorFn: (row) => row.updated_at ?? row.created_at,
-      header: 'Updated',
+      header: 'Last Login',
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {formatDateTime(row.original.updated_at ?? row.original.created_at)}
+          {formatDateTime(row.original.last_login_at)}
         </span>
       ),
     },
     {
       id: 'actions',
       header: 'Actions',
-      enableHiding: false,
-      enableSorting: false,
       cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Open actions for ${formatUserDisplayName(row.original)}`} />}>
-            <MoreHorizontal />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => onManage(row.original)}>
-                <UserCog data-icon="inline-start" />
-                Manage user
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onResetPassword(row.original)}>
-                <KeyRound data-icon="inline-start" />
-                Reset password
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => onToggleStatus(row.original)}>
-                <ShieldAlert data-icon="inline-start" />
-                {row.original.is_active ? 'Deactivate' : 'Activate'}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" size="xs" onClick={() => onManage(row.original)}>
+            <ArrowUpRight data-icon="inline-start" />
+            Manage
+          </Button>
+          <Button variant="outline" size="xs" onClick={() => onResetPassword(row.original)}>
+            <KeyRound data-icon="inline-start" />
+            Reset
+          </Button>
+          <Button
+            variant={row.original.is_active ? 'destructive' : 'secondary'}
+            size="xs"
+            onClick={() => onToggleStatus(row.original)}
+          >
+            <ShieldAlert data-icon="inline-start" />
+            {row.original.is_active ? 'Deactivate' : 'Activate'}
+          </Button>
+        </div>
       ),
+      enableSorting: false,
+      enableHiding: false,
     },
-  ]
+  ], [onManage, onResetPassword, onToggleStatus])
 
   const table = useReactTable({
     data: filteredUsers,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
-      columnFilters,
-      columnVisibility,
+      rowSelection,
+      pagination,
     },
-    initialState: {
-      pagination: {
-        pageIndex: 0,
-        pageSize: 8,
-      },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onPaginationChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(pagination) : updater
+      updateSearch((prev) => ({
+        ...prev,
+        page: next.pageIndex + 1,
+        pageSize: next.pageSize,
+      }))
     },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    manualFiltering: false,
   })
 
+  const pageCount = table.getPageCount()
+
+  useEffect(() => {
+    if (pageCount === 0 && search.page !== 1) {
+      updateSearch((prev) => ({ ...prev, page: 1 }))
+      return
+    }
+
+    if (pageCount > 0 && search.page > pageCount) {
+      updateSearch((prev) => ({ ...prev, page: pageCount }))
+    }
+  }, [pageCount, search.page, updateSearch])
+
   const currentRows = table.getRowModel().rows
+  const totalPages = Math.max(pageCount, 1)
+  const paginationItems = buildPaginationItems(search.page, totalPages)
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative w-full lg:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Search by name, user ID, username, or email"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative w-full lg:max-w-sm">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Filter users..."
+                value={search.q}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  updateSearch((prev) => ({
+                    ...prev,
+                    q: nextValue,
+                    page: 1,
+                  }))
+                }}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterSelect
+                value={search.status}
+                placeholder="Status"
+                options={[
+                  { value: 'all', label: 'Status' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                ]}
+                onValueChange={(value) => updateSearch((prev) => ({
+                  ...prev,
+                  status: value as AdminUsersStatusFilter,
+                  page: 1,
+                }))}
+              />
+              <FilterSelect
+                value={search.role}
+                placeholder="Role"
+                options={ROLE_OPTIONS}
+                onValueChange={(value) => updateSearch((prev) => ({
+                  ...prev,
+                  role: value as 'all' | UserRole,
+                  page: 1,
+                }))}
+              />
+              <FilterSelect
+                value={search.bhs}
+                placeholder="BHS"
+                options={[
+                  { value: 'all', label: 'BHS' },
+                  ...stations.map((station) => ({ value: station.id, label: station.name })),
+                ]}
+                onValueChange={(value) => updateSearch((prev) => ({
+                  ...prev,
+                  bhs: value,
+                  page: 1,
+                }))}
+              />
+              <FilterSelect
+                value={search.passwordState}
+                placeholder="Password state"
+                options={[
+                  { value: 'all', label: 'Password state' },
+                  { value: 'pending', label: 'Change pending' },
+                  { value: 'complete', label: 'Updated' },
+                ]}
+                onValueChange={(value) => updateSearch((prev) => ({
+                  ...prev,
+                  passwordState: value as AdminUsersPasswordStateFilter,
+                  page: 1,
+                }))}
+              />
+              <Button
+                variant="outline"
+                onClick={() => updateSearch((prev) => ({
+                  ...prev,
+                  q: '',
+                  status: 'all',
+                  role: 'all',
+                  bhs: 'all',
+                  passwordState: 'all',
+                  page: 1,
+                }))}
+              >
+                Clear filters
+              </Button>
+            </div>
           </div>
 
-          <div className="flex flex-1 flex-wrap items-center gap-2 lg:justify-end">
-            <FilterSelect
-              value={roleFilter}
-              onValueChange={(value) => setRoleFilter(value as UserRole | 'all')}
-              placeholder="All roles"
-              options={[
-                { value: 'all', label: 'All roles' },
-                ...(['system_admin', 'city_health_officer', 'phis_coordinator', 'dso', 'nurse_phn', 'midwife_rhm', 'bhw'] as UserRole[]).map((role) => ({
-                  value: role,
-                  label: getRoleLabel(role),
-                })),
-              ]}
-            />
-            <FilterSelect
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-              placeholder="All statuses"
-              options={[
-                { value: 'all', label: 'All statuses' },
-                { value: 'active', label: 'Active only' },
-                { value: 'inactive', label: 'Inactive only' },
-              ]}
-            />
-            <FilterSelect
-              value={stationFilter}
-              onValueChange={setStationFilter}
-              placeholder="All BHS"
-              options={[
-                { value: 'all', label: 'All BHS' },
-                ...stations.map((station) => ({ value: station.id, label: station.name })),
-              ]}
-            />
-            <FilterSelect
-              value={passwordFilter}
-              onValueChange={(value) => setPasswordFilter(value as PasswordFilter)}
-              placeholder="Password state"
-              options={[
-                { value: 'all', label: 'Password state' },
-                { value: 'pending', label: 'Change pending' },
-                { value: 'complete', label: 'Already updated' },
-              ]}
-            />
-            <FilterSelect
-              value={loginFilter}
-              onValueChange={(value) => setLoginFilter(value as LoginFilter)}
-              placeholder="Login state"
-              options={[
-                { value: 'all', label: 'Login state' },
-                { value: 'never', label: 'Never signed in' },
-                { value: 'signed-in', label: 'Has signed in' },
-              ]}
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearch('')
-                setRoleFilter('all')
-                setStatusFilter('all')
-                setStationFilter('all')
-                setPasswordFilter('all')
-                setLoginFilter('all')
-              }}
-            >
-              Clear filters
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" />}>
-                <Columns3 data-icon="inline-start" />
-                Columns
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuGroup>
-                  {table.getAllColumns()
-                    .filter((column) => column.getCanHide())
-                    .map((column) => (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) => column.toggleVisibility(Boolean(value))}
-                      >
-                        {column.id.replaceAll('_', ' ')}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <Button size="lg" nativeButton={false} render={<Link to="/admin/users/new" />}>
+            Add User
+          </Button>
         </div>
       </div>
 
-      <div className="hidden rounded-xl border md:block">
+      <div className="hidden rounded-xl border bg-card md:block">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="-ml-2"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        <ArrowUpDown data-icon="inline-end" />
-                      </Button>
-                    ) : (
-                      flexRender(header.column.columnDef.header, header.getContext())
-                    )}
-                  </TableHead>
-                ))}
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort()
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : canSort ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="-ml-2"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          <ArrowUpDown data-icon="inline-end" />
+                        </Button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                    </TableHead>
+                  )
+                })}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {loading ? (
-              Array.from({ length: 6 }).map((_, index) => (
+              Array.from({ length: search.pageSize }).map((_, index) => (
                 <TableRow key={`loading-${index}`}>
-                  {columns.map((_, cellIndex) => (
-                    <TableCell key={`loading-cell-${index}-${cellIndex}`}>
-                      <Skeleton className="h-5 w-full" />
+                  {columns.map((column, cellIndex) => (
+                    <TableCell key={`loading-${column.id ?? cellIndex}`}>
+                      {cellIndex === 0 ? <Skeleton className="size-4 rounded-[4px]" /> : <Skeleton className="h-5 w-full" />}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
-            ) : currentRows.length ? (
+            ) : currentRows.length > 0 ? (
               currentRows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} data-state={row.getIsSelected() ? 'selected' : undefined}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -404,7 +460,7 @@ export function UsersDataTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="p-0">
+                <TableCell colSpan={columns.length} className="py-12">
                   <NoResults />
                 </TableCell>
               </TableRow>
@@ -415,21 +471,27 @@ export function UsersDataTable({
 
       <div className="flex flex-col gap-3 md:hidden">
         {loading ? (
-          Array.from({ length: 4 }).map((_, index) => (
+          Array.from({ length: Math.min(search.pageSize, 4) }).map((_, index) => (
             <div key={`mobile-loading-${index}`} className="rounded-xl border bg-card p-4">
               <div className="flex items-center gap-3">
-                <Skeleton className="size-8 rounded-full" />
+                <Skeleton className="size-10 rounded-full" />
                 <div className="flex flex-1 flex-col gap-2">
-                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-4 w-40" />
                   <Skeleton className="h-4 w-28" />
                 </div>
               </div>
             </div>
           ))
-        ) : currentRows.length ? (
+        ) : currentRows.length > 0 ? (
           currentRows.map((row) => (
             <article key={row.id} className="rounded-xl border bg-card p-4">
               <div className="flex items-start gap-3">
+                <Checkbox
+                  checked={row.getIsSelected()}
+                  onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
+                  aria-label={`Select ${formatUserDisplayName(row.original)}`}
+                  className="mt-2"
+                />
                 <UserAvatar
                   firstName={row.original.first_name}
                   lastName={row.original.last_name}
@@ -438,33 +500,32 @@ export function UsersDataTable({
                 />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate font-medium">{formatUserDisplayName(row.original)}</span>
+                  <span className="truncate text-sm text-muted-foreground">@{row.original.username}</span>
                   <span className="truncate text-sm text-muted-foreground">{row.original.email}</span>
                   <div className="flex flex-wrap gap-2 pt-1">
+                    <StatusBadge isActive={row.original.is_active} />
                     <Badge variant="secondary">{getRoleLabel(row.original.role)}</Badge>
-                    <Badge variant={row.original.is_active ? 'default' : 'destructive'}>
-                      {row.original.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                    <Badge variant={row.original.must_change_password ? 'outline' : 'secondary'}>
-                      {row.original.must_change_password ? 'Change pending' : 'Updated'}
-                    </Badge>
                   </div>
                 </div>
               </div>
+
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <CardDatum label="User ID" value={row.original.user_id} />
-                <CardDatum label="Username" value={row.original.username} />
+                <CardDatum label="Phone Number" value={row.original.mobile_number ?? 'Not recorded'} />
                 <CardDatum label="BHS" value={row.original.health_station_name ?? 'City-wide'} />
-                <CardDatum label="Last login" value={formatDateTime(row.original.last_login_at)} />
+                <CardDatum label="Last Login" value={formatDateTime(row.original.last_login_at)} />
+                <CardDatum label="Password State" value={row.original.must_change_password ? 'Change pending' : 'Updated'} />
               </div>
+
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => onManage(row.original)}>
+                <Button variant="outline" size="sm" onClick={() => onManage(row.original)}>
                   Manage
                 </Button>
-                <Button variant="outline" onClick={() => onResetPassword(row.original)}>
+                <Button variant="outline" size="sm" onClick={() => onResetPassword(row.original)}>
                   Reset password
                 </Button>
                 <Button
                   variant={row.original.is_active ? 'destructive' : 'secondary'}
+                  size="sm"
                   onClick={() => onToggleStatus(row.original)}
                 >
                   {row.original.is_active ? 'Deactivate' : 'Activate'}
@@ -478,25 +539,76 @@ export function UsersDataTable({
       </div>
 
       {!loading && filteredUsers.length > 0 ? (
-        <div className="flex flex-col gap-3 rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <span>
-            Showing {currentRows.length} of {filteredUsers.length} matching users
-          </span>
+        <div className="flex flex-col gap-3 rounded-xl border bg-card px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Rows per page</span>
+            <Select
+              value={String(search.pageSize)}
+              onValueChange={(value: string | null) => {
+                const nextPageSize = Number(value ?? search.pageSize)
+                updateSearch((prev) => ({
+                  ...prev,
+                  pageSize: nextPageSize,
+                  page: 1,
+                }))
+              }}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {PAGE_SIZE_OPTIONS.map((pageSize) => (
+                    <SelectItem key={pageSize} value={String(pageSize)}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            Page {search.page} of {totalPages}
+          </div>
+
           <Pagination className="mx-0 w-auto justify-start md:justify-end">
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
+                  onClick={() => updateSearch((prev) => ({
+                    ...prev,
+                    page: Math.max(prev.page - 1, 1),
+                  }))}
+                  disabled={search.page <= 1}
                 />
               </PaginationItem>
-              <PaginationItem>
-                <span className="px-3">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
-              </PaginationItem>
+
+              {paginationItems.map((item, index) => (
+                <PaginationItem key={`${item}-${index}`}>
+                  {item === 'ellipsis' ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      isActive={item === search.page}
+                      onClick={() => updateSearch((prev) => ({
+                        ...prev,
+                        page: item,
+                      }))}
+                    >
+                      {item}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+
               <PaginationItem>
                 <PaginationNext
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
+                  onClick={() => updateSearch((prev) => ({
+                    ...prev,
+                    page: Math.min(prev.page + 1, totalPages),
+                  }))}
+                  disabled={search.page >= totalPages}
                 />
               </PaginationItem>
             </PaginationContent>
@@ -519,9 +631,11 @@ function FilterSelect({
   options: Array<{ value: string; label: string }>
 }) {
   return (
-    <Select value={value} onValueChange={(nextValue) => onValueChange(nextValue ?? '')}>
-      <SelectTrigger className="w-full min-w-40 lg:w-44">
-        <SelectValue placeholder={placeholder} />
+    <Select value={value} onValueChange={(nextValue: string | null) => onValueChange(nextValue ?? '')}>
+      <SelectTrigger className="w-full min-w-36 lg:w-44">
+        <SelectValue placeholder={placeholder}>
+          {(selectedValue: string | null) => options.find((option) => option.value === selectedValue)?.label ?? placeholder}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
@@ -533,6 +647,19 @@ function FilterSelect({
         </SelectGroup>
       </SelectContent>
     </Select>
+  )
+}
+
+function StatusBadge({ isActive }: { isActive: boolean }) {
+  return (
+    <Badge
+      variant="outline"
+      className={isActive
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        : 'border-rose-200 bg-rose-50 text-rose-700'}
+    >
+      {isActive ? 'Active' : 'Inactive'}
+    </Badge>
   )
 }
 
@@ -554,10 +681,26 @@ function NoResults() {
         </EmptyMedia>
         <EmptyTitle>No users match these filters</EmptyTitle>
         <EmptyDescription>
-          Try a different role, status, or search term to find the account you need.
+          Try a different username, role, status, BHS, or password state.
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent />
     </Empty>
   )
+}
+
+function buildPaginationItems(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
+  }
+
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, 'ellipsis', totalPages] as const
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [1, 'ellipsis', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages] as const
+  }
+
+  return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages] as const
 }

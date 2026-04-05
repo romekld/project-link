@@ -77,7 +77,7 @@ export function LoginPage() {
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
       {/* Left: Brand panel — hidden on mobile */}
-      <div className="relative hidden flex-col justify-between bg-green-100 p-10 text-green-foreground lg:flex">
+      <div className="relative hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex">
         {/* Top: logo + wordmark */}
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -85,7 +85,7 @@ export function LoginPage() {
           </div>
           <div>
             <p className="font-heading text-lg font-bold leading-none">LINK</p>
-            <p className="text-xs text-green-foreground/70">
+            <p className="text-xs text-primary-foreground/70">
               Local Information Network for Kalusugan
             </p>
           </div>
@@ -101,7 +101,7 @@ export function LoginPage() {
         </div>
 
         {/* Bottom: attribution */}
-        <p className="text-left text-sm text-green-foreground/70">
+        <p className="text-left text-sm text-primary-foreground/70">
           City Health Office II — Dasmariñas City
         </p>
       </div>

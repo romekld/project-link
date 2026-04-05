@@ -1,11 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
-import { KeyRound, ShieldAlert, UserPlus, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseFunctionHeaders } from '@/lib/supabase-function-headers'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Dialog,
@@ -58,7 +57,7 @@ export function UserListPage() {
       const [usersRes, stationsRes] = await Promise.all([
         supabase
           .from('user_profiles')
-          .select('*, health_stations(name)')
+          .select('*, health_station:health_stations!user_profiles_health_station_id_fkey(name)')
           .order('last_name')
           .order('first_name'),
         supabase.from('health_stations').select('id, name').order('name'),
@@ -73,7 +72,7 @@ export function UserListPage() {
       setUsers(
         (usersRes.data ?? []).map((user) => ({
           ...user,
-          health_station_name: user.health_stations?.name ?? null,
+          health_station_name: user.health_station?.name ?? null,
         }))
       )
       setStations(stationsRes.data ?? [])
@@ -82,10 +81,6 @@ export function UserListPage() {
 
     void load()
   }, [])
-
-  const activeUsers = users.filter((user) => user.is_active).length
-  const pendingPasswordUsers = users.filter((user) => user.must_change_password).length
-  const neverLoggedInUsers = users.filter((user) => !user.last_login_at).length
 
   const refreshUser = (updatedUser: UserDirectoryRecord) => {
     setUsers((current) => current.map((user) => (
@@ -164,46 +159,14 @@ export function UserListPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">Users</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Manage staff accounts, review password state, and keep role assignments clean across all health stations.
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">User List</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage staff accounts, review their status, and keep role assignments clean across all health stations.
           </p>
         </div>
-
-        <Button size="lg" nativeButton={false} render={<Link to="/admin/users/new" />}>
-          <UserPlus data-icon="inline-start" />
-          Create user
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          title="Total users"
-          value={users.length}
-          description="All accounts in the system"
-          icon={<Users />}
-        />
-        <SummaryCard
-          title="Active accounts"
-          value={activeUsers}
-          description="Can currently sign in"
-          icon={<ShieldAlert />}
-        />
-        <SummaryCard
-          title="Password reminders"
-          value={pendingPasswordUsers}
-          description="Still using a temporary password"
-          icon={<KeyRound />}
-        />
-        <SummaryCard
-          title="Never signed in"
-          value={neverLoggedInUsers}
-          description="Created but not yet used"
-          icon={<UserPlus />}
-        />
       </div>
 
       {loadError ? (
@@ -306,34 +269,5 @@ export function UserListPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-function SummaryCard({
-  title,
-  value,
-  description,
-  icon,
-}: {
-  title: string
-  value: number
-  description: string
-  icon: ReactNode
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
-        <div className="flex flex-col gap-1">
-          <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
-          <span className="font-heading text-3xl font-semibold tracking-tight">{value}</span>
-        </div>
-        <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-          {icon}
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0 text-sm text-muted-foreground">
-        {description}
-      </CardContent>
-    </Card>
   )
 }
