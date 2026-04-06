@@ -8,25 +8,54 @@ export async function getSupabaseFunctionHeaders() {
     throw new Error('Unable to verify your session. Please sign in again.')
   }
 
-  const nowUnix = Math.floor(Date.now() / 1000)
-  const isTokenMissingOrExpiringSoon =
-    !session?.access_token ||
-    !session.expires_at ||
-    session.expires_at <= nowUnix + 60
+  let activeSession = session
 
-  let accessToken = session?.access_token
-  if (isTokenMissingOrExpiringSoon && session?.refresh_token) {
+  const refreshAccessToken = async () => {
+    if (!activeSession?.refresh_token) {
+      return null
+    }
+
     const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
     if (refreshError || !refreshData.session?.access_token) {
-      await supabase.auth.signOut({ scope: 'local' })
-      throw new Error('Your session has expired. Please sign in again and retry.')
+      return null
     }
-    accessToken = refreshData.session.access_token
+
+    activeSession = refreshData.session
+    return refreshData.session.access_token
+  }
+
+  const nowUnix = Math.floor(Date.now() / 1000)
+  const shouldRefreshBeforeInvoke =
+    !activeSession?.access_token ||
+    !activeSession.expires_at ||
+    activeSession.expires_at <= nowUnix + 60
+
+  let accessToken = activeSession?.access_token ?? null
+  if (shouldRefreshBeforeInvoke) {
+    accessToken = await refreshAccessToken()
   }
 
   if (!accessToken) {
     await supabase.auth.signOut({ scope: 'local' })
     throw new Error('Your session has expired. Please sign in again and retry.')
+  }
+
+  // Verify token validity before invoking JWT-protected Edge Functions.
+  const { error: userError } = await supabase.auth.getUser(accessToken)
+  if (userError) {
+    const refreshedAccessToken = await refreshAccessToken()
+    if (!refreshedAccessToken) {
+      await supabase.auth.signOut({ scope: 'local' })
+      throw new Error('Your session has expired. Please sign in again and retry.')
+    }
+
+    const { error: refreshedUserError } = await supabase.auth.getUser(refreshedAccessToken)
+    if (refreshedUserError) {
+      await supabase.auth.signOut({ scope: 'local' })
+      throw new Error('Your session has expired. Please sign in again and retry.')
+    }
+
+    accessToken = refreshedAccessToken
   }
 
   return {
