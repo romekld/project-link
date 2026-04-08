@@ -1,0 +1,5 @@
+model_context_window=1000000
+
+[mcp_servers.shadcn]
+command = "npx"
+args = ["shadcn@latest", "mcp"]
