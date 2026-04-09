@@ -3,9 +3,18 @@
 ## Document Status
 
 - Status: Locked baseline
-- Last updated: 2026-04-09
+- Last updated: 2026-04-10
 - Companion document: `docs/architecture.md`
 - Purpose: Product and phase reference aligned to the currently locked architecture and repository setup
+
+## Workflow Diagram References
+
+This specification is aligned with these process flow artifacts:
+
+- `docs/diagrams/flowcharts/manual-fhsis-process-flowchart.md` (legacy as-is baseline)
+- `docs/diagrams/flowcharts/digital-fhsis-process-flowchart.md` (target to-be workflow)
+
+Where wording differs, the digital flowchart is the source of truth for validation gates, correction loops, and consolidation sequencing.
 
 ## 1. Executive Summary
 
@@ -236,6 +245,7 @@ Build the internal dashboard application in `apps/web` so it can accurately repr
 - `apps/web` has a coherent internal dashboard structure
 - the root route and future route tree reflect internal product use, not public marketing use
 - all major roles have identifiable workflow entry points
+- role workflows in the UI can be traced to the digital flowchart hand-offs (BHW -> RHM -> PHN -> PHIS)
 - UI architecture is ready for future backend and database wiring
 - mock data and placeholders are isolated so they can be replaced later
 
@@ -349,6 +359,7 @@ The next practical priorities after this spec are:
 3. establish the shared shell and navigation patterns
 4. introduce mock data and placeholder workflow modules
 5. keep `apps/api` and `supabase/` minimal until the frontend architecture stabilizes
+6. ensure route and workflow shells map cleanly to `docs/diagrams/flowcharts/digital-fhsis-process-flowchart.md`
 
 ## 14. Summary
 

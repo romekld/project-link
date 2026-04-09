@@ -79,11 +79,6 @@ flowchart LR
       phn_analytics --> phn_annual[/Auto-Generated Annual City-Wide Reports/]
       phn_monthly --> B1((B))
       phn_annual --> B2((B))
-
-      A3((A)) --> phn_surveillance[Real-Time Surveillance Dashboard]
-      phn_surveillance --> phn_realtime[/Real-Time Health Records with Status/]
-      phn_realtime --> phn_map[Map Records and Cases]
-      phn_map --> phn_gis[/GIS Map and Predictive Analytics/]
     end
 
     subgraph PHIS["PHIS Coordinator"]
@@ -100,7 +95,15 @@ flowchart LR
       phis_approved --> phis_export[Export Reports in Excel or PDF Format]
       phis_export --> phis_reports[[Reports in Excel or PDF Format]]
       phis_reports --> phis_submit[Submit Reports to Provincial Health Office via same DOH Excel-Based E-Tools]
-      phis_submit --> phis_end([End])
+    end
+
+    subgraph CHO["City Health Officer"]
+      direction TB
+      cho_start((A)) --> cho_surveillance[Real-Time Surveillance Dashboard]
+      cho_surveillance --> cho_realtime[/Real-Time Health Records with Status/]
+      cho_realtime --> cho_map[Map Records and Cases]
+      cho_map --> cho_gis[/GIS Map and Predictive Analytics/]
+      cho_gis --> cho_end([End])
     end
   end
 
@@ -108,6 +111,7 @@ flowchart LR
   %% Cross-lane connectors and handoffs
   %% ============================
 
+  A1 --> rhm_view
   A1 --> phn_dash
   A2 --> phn_dash
   A2 --> rhm_targets_auto
@@ -117,7 +121,7 @@ flowchart LR
   B1 --> phis_dash
   B2 --> phis_dash
 
-  phn_gis --> phis_end
+  phis_submit --> cho_end
 
   %% ============================
   %% Optional visual classes (to mimic original color semantics)
@@ -134,6 +138,6 @@ flowchart LR
   class rhm_return,phn_tbl_return,phis_return statusReturn;
   class rhm_validated,phn_tbl_approved,phis_approved statusApprove;
   class bhw_profiles,rhm_target_lists,phis_reports generated;
-  class rhm_master,rhm_summary_auto,pat_itr,phn_tables,phn_monthly,phn_annual,phn_realtime,phn_gis table;
+  class rhm_master,rhm_summary_auto,pat_itr,phn_tables,phn_monthly,phn_annual,cho_realtime,cho_gis table;
   class bhw_capture input;
 ```

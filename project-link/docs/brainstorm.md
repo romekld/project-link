@@ -89,6 +89,15 @@ frontend/src/        # React TS, Tailwind, shadcn components
 
 ## 6. Critical Workflows
 
+### 6.0 Workflow Reference Artifacts
+
+The narrative in this document is anchored to two canonical process diagrams:
+
+- `docs/diagrams/flowcharts/manual-fhsis-process-flowchart.md` for the legacy paper workflow
+- `docs/diagrams/flowcharts/digital-fhsis-process-flowchart.md` for the Project LINK target workflow
+
+These diagrams should be treated as the visual source of truth for hand-offs, validation gates, and return loops across BHW, Midwife, PHN, and PHIS roles.
+
 ### 6.1 ITR & TCL Entry (Point of Care)
 
 - **Trigger:** BHW/Midwife logs a patient service.
@@ -98,20 +107,23 @@ frontend/src/        # React TS, Tailwind, shadcn components
 ### 6.2 Automated ST Generation (BHS Level)
 
 - **Trigger:** End-of-month cutoff at the BHS.
-- **Action:** Midwife triggers the auto-tally engine.
+- **Action:** Midwife validates submissions, then triggers the auto-tally engine.
 - **Output:** Generates Summary Table (ST) for health program accomplishments.
+- **Flowchart Alignment:** Includes return/resubmission paths before records become validated.
 
 ### 6.3 The MCT Consolidation (City Level)
 
 - **Trigger:** Nurse (PHN) initiates city-wide review.
 - **Action:** Nurse reviews 32 automated STs.
 - **Process:** Merges validated STs into the Monthly Consolidation Table (MCT).
+- **Flowchart Alignment:** Consolidation runs only after required summary-table approvals are complete.
 
 ### 6.4 Reporting & Alerting
 
 - **Trigger:** PHIS Coordinator verification of the MCT.
 - **Output:** Auto-generation of official M1/M2 reports.
 - **Emergency:** Category I cases trigger immediate WebSocket alerts to the DSO (RA 11332 compliance).
+- **Flowchart Alignment:** PHIS data-quality check has an explicit return path before export/submission.
 
 ---
 
