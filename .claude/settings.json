@@ -10,9 +10,9 @@
     "typescript-lsp@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": true,
-    "compound-engineering@compound-engineering-plugin": true,
+    "compound-engineering@compound-engineering-plugin": false,
     "document-skills@anthropic-agent-skills": true,
-    "superpowers@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": true,
     "supabase@claude-plugins-official": true,
     "vercel@claude-plugins-official": true

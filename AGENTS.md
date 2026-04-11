@@ -115,26 +115,22 @@ BHWs work in remote puroks without connectivity. The PWA uses **Dexie.js** (Inde
 
 ---
 
-## Repo Structure
+## Monorepo Layout
 
-```
-apps/
-  web/          Next.js App Router — internal dashboard
-    app/        Route segments (App Router)
-    components/ shadcn/ui components under components/ui/
-    lib/        Shared utilities
-  api/          FastAPI service
-    app/
-      main.py   FastAPI entry point
-packages/       Shared packages (reserved, currently empty)
-supabase/       Supabase CLI config, migrations, policies
-docs/
-  project_spec.md           Locked product + technical spec
-  infra-setup.md            Infrastructure setup reference
-  PLANS/                    Implementation plans and status
-  references/research/      FHSIS Manual of Operations and research
-  diagrams/                 Process flowcharts
-  gis/                      Barangay boundary GeoJSON data
+The actual monorepo lives inside `project-link/` at the repo root. Run all commands from there unless noted otherwise.
+
+```text
+project-link/
+  apps/
+    web/          Next.js 16 App Router — internal dashboard + BHW PWA
+    api/          FastAPI scaffold — health-domain logic, reporting, analytics
+  packages/
+    supabase/     Supabase CLI config and migrations
+    eslint-config/
+    typescript-config/
+  turbo.json
+  pnpm-workspace.yaml
+  package.json
 ```
 
 ---
