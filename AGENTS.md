@@ -19,6 +19,8 @@ This is the primary reference file for all AI agents working in this repository.
 | `docs/architecture.md` | System design, data flow, and technical decisions. |
 | `docs/PLANS/changelog.md` | Version history and notable changes. |
 | `docs/PLANS/project-status.md` | Current phase progress and milestone tracking. |
+| `project-link/docs/PLANS/shadcn-admin-to-web-migration-checklist.md` | Reference checklist for mapping `apps/shadcn-admin` patterns to `apps/web` Next.js targets. |
+| `project-link/docs/PLANS/frontend-architecture-agent-reference.md` | AI-agent implementation reference for `apps/web` architecture and dashboard layout conventions. |
 | `docs/references/research/fhsis_mop/` | FHSIS Manual of Operations reference (DOH DM 2024-0007). |
 
 Update the relevant `docs/` files after completing a major milestone or making a significant architectural change.

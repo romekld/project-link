@@ -26,6 +26,9 @@
 
 ## Next
 
+- **Frontend migration governance**:
+  - Use `docs/PLANS/shadcn-admin-to-web-migration-checklist.md` as the canonical reference when adapting `apps/shadcn-admin` patterns into `apps/web`.
+
 - **M3 — User management pages (system_admin)**:
   - `/admin/users` list: role, BHS assignment, status, last active columns.
   - `/admin/users/create` invite flow: `supabase.auth.admin.inviteUserByEmail()` via Server Action (service role only).
