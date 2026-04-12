@@ -7,3 +7,8 @@ args = ["shadcn@latest", "mcp"]
 [mcp_servers.playwright]
 command = "npx"
 args = ["@playwright/mcp@latest"]
+
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp"
+[features]
+rmcp_client = true

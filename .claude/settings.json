@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build:*)",
+      "Bash(node scripts/seed-admin.mjs)",
+      "Bash(pnpm dev:*)"
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "bash \"D:/project-link/.claude/statusline-command.sh\""
