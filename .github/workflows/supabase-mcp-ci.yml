@@ -1,0 +1,25 @@
+name: Supabase MCP CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  supabase-mcp:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Supabase MCP CI environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${SUPABASE_ACCESS_TOKEN:?Set SUPABASE_ACCESS_TOKEN in repository secrets.}"
+          : "${SUPABASE_PROJECT_REF:?Set SUPABASE_PROJECT_REF in repository secrets.}"
+
+          echo "Supabase MCP CI is configured for project ref ${SUPABASE_PROJECT_REF}."
+          echo "Use https://mcp.supabase.com/mcp?project_ref=${SUPABASE_PROJECT_REF} with an Authorization Bearer token."

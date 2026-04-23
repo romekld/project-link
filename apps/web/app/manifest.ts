@@ -1,0 +1,29 @@
+import type { MetadataRoute } from "next"
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Project LINK",
+    short_name: "LINK",
+    description: "Barangay Health Worker field operations — household profiling and service recording.",
+    start_url: "/bhw/dashboard",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#18181b",
+    orientation: "portrait",
+    icons: [
+      {
+        src: "/icons/icon-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/icon-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
+    categories: ["health", "medical", "utilities"],
+  }
+}
