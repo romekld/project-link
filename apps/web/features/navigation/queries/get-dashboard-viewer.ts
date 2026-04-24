@@ -1,3 +1,4 @@
+import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { isSupportedDashboardRole } from "../data/role-policy"
 import type { DashboardViewer } from "../data/types"
@@ -30,7 +31,7 @@ function formatInitials(name: string, email: string) {
   return initials || email[0]?.toUpperCase() || "PL"
 }
 
-export async function getDashboardViewer(): Promise<DashboardViewer | null> {
+export const getDashboardViewer = cache(async function getDashboardViewer(): Promise<DashboardViewer | null> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -64,4 +65,4 @@ export async function getDashboardViewer(): Promise<DashboardViewer | null> {
     initials: formatInitials(name, email),
     mustChangePassword: Boolean(profile.must_change_password),
   }
-}
+})

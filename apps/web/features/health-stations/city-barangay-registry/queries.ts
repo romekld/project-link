@@ -88,23 +88,37 @@ export const getCityBarangayRegistryData = cache(
   async (): Promise<CityBarangayRegistryData> => {
     const supabase = await createClient()
 
-    const { data: rows, error } = await supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from('city_barangay_registry_view' as any)
-      .select('*')
+    // Run the three independent queries in parallel.
+    const [
+      { data: rows, error: rowsError },
+      { data: versionRows, error: versionsError },
+      { data: jobRow, error: jobError },
+    ] = await Promise.all([
+      supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('city_barangay_registry_view' as any)
+        .select('*'),
+      supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('city_barangay_geometry_versions' as any)
+        .select('id, city_barangay_id, version_no, change_type, reason, changed_by, changed_at, source_payload')
+        .order('version_no', { ascending: false }),
+      supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('city_barangay_import_jobs' as any)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
 
-    if (error) throw error
+    if (rowsError) throw rowsError
+    if (versionsError) throw versionsError
+    if (jobError) throw jobError
 
     const records = ((rows ?? []) as unknown as RegistryViewRow[])
       .map(mapRegistryRow)
       .sort((a, b) => a.name.localeCompare(b.name))
-
-    // Fetch geometry versions (one query for all, grouped client-side).
-    const { data: versionRows } = await supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from('city_barangay_geometry_versions' as any)
-      .select('id, city_barangay_id, version_no, change_type, reason, changed_by, changed_at, source_payload')
-      .order('version_no', { ascending: false })
 
     const geometryVersions: CityBarangayGeometryVersion[] = (
       (versionRows ?? []) as unknown as {
@@ -128,15 +142,6 @@ export const getCityBarangayRegistryData = cache(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       sourcePayload: (v.source_payload ?? {}) as any,
     }))
-
-    // Fetch latest import job (if any).
-    const { data: jobRow } = await supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from('city_barangay_import_jobs' as any)
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
 
     let importJob: CityBarangayImportJob = buildEmptyImportJob()
     let importItems: CityBarangayImportItem[] = []
