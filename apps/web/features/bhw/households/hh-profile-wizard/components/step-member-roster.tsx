@@ -20,15 +20,11 @@ const relationshipLabels: Record<string, string> = {
 type StepMemberRosterProps = {
   members: MemberValues[]
   onMembersChange: (members: MemberValues[]) => void
-  onNext: () => void
-  onBack: () => void
 }
 
 export function StepMemberRoster({
   members,
   onMembersChange,
-  onNext,
-  onBack,
 }: StepMemberRosterProps) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingMember, setEditingMember] = useState<MemberValues | undefined>()
@@ -149,26 +145,6 @@ export function StepMemberRoster({
         isFirstMember={members.length === 0}
       />
 
-      <div className="flex gap-3 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="flex-1"
-          onClick={onBack}
-        >
-          Back
-        </Button>
-        <Button
-          type="button"
-          size="lg"
-          className="flex-1"
-          onClick={onNext}
-          disabled={members.length === 0}
-        >
-          Review
-        </Button>
-      </div>
     </div>
   )
 }

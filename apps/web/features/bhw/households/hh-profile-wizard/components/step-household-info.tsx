@@ -29,12 +29,14 @@ import {
 import { householdInfoSchema, type HouseholdInfoValues } from "../data/form-schema"
 
 type StepHouseholdInfoProps = {
+  formId: string
   defaultValues?: Partial<HouseholdInfoValues>
   quarterLabel: string
   onNext: (values: HouseholdInfoValues) => void
 }
 
 export function StepHouseholdInfo({
+  formId,
   defaultValues,
   quarterLabel,
   onNext,
@@ -60,7 +62,7 @@ export function StepHouseholdInfo({
   const philhealthMember = watch("hhHeadPhilhealthMember")
 
   return (
-    <form onSubmit={handleSubmit(onNext)} className="flex flex-col gap-4">
+    <form id={formId} onSubmit={handleSubmit(onNext)} className="flex flex-col gap-4">
       <Card>
         <CardHeader className="border-b pb-3 pt-4">
           <CardTitle className="text-base">Visit Information</CardTitle>
@@ -278,9 +280,6 @@ export function StepHouseholdInfo({
         </CardContent>
       </Card>
 
-      <Button type="submit" size="lg" className="w-full">
-        Continue to Members
-      </Button>
     </form>
   )
 }

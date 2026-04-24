@@ -1,7 +1,6 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { format } from "date-fns"
@@ -20,18 +19,12 @@ type StepReviewProps = {
   householdInfo: HouseholdInfoValues
   members: MemberValues[]
   quarterLabel: string
-  onSubmit: () => void
-  onBack: () => void
-  isSubmitting?: boolean
 }
 
 export function StepReview({
   householdInfo,
   members,
   quarterLabel,
-  onSubmit,
-  onBack,
-  isSubmitting,
 }: StepReviewProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -175,28 +168,6 @@ export function StepReview({
       <p className="text-center text-xs text-muted-foreground">
         This record will be saved locally and submitted to the Midwife for review when you are online.
       </p>
-
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="flex-1"
-          onClick={onBack}
-          disabled={isSubmitting}
-        >
-          Back
-        </Button>
-        <Button
-          type="button"
-          size="lg"
-          className="flex-1"
-          onClick={onSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Saving..." : "Save & Submit"}
-        </Button>
-      </div>
     </div>
   )
 }

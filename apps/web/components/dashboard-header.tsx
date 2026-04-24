@@ -5,7 +5,11 @@ import { DashboardHeaderActions } from "@/components/dashboard-header-actions";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
-export function DashboardHeader() {
+type DashboardHeaderProps = {
+  hideMobileSidebarTrigger?: boolean
+}
+
+export function DashboardHeader({ hideMobileSidebarTrigger }: DashboardHeaderProps) {
     const [offset, setOffset] = useState(0);
 
     useEffect(() => {
@@ -36,7 +40,7 @@ export function DashboardHeader() {
                     "after:absolute after:inset-0 after:-z-10 after:bg-background/20 after:backdrop-blur-lg"
                 )}
             >
-                <SidebarTrigger />
+                <SidebarTrigger className={hideMobileSidebarTrigger ? "md:flex hidden" : undefined} />
                 <div className="ml-auto">
                     <DashboardHeaderActions />
                 </div>
