@@ -3,6 +3,8 @@
 > **Scope:** Disease outbreak prediction, patient risk scoring/identification, and optional prescriptive resource allocation.
 > **Compliance:** FHSIS 2018 MOP (DOH DM 2024-0007), RA 10173, RA 11332.
 > **Tech stack context:** Next.js 16 + FastAPI + Supabase.
+>
+> **Status Note:** This document is a draft planning reference only. Model choices and implementation details here are proposed, not final or official decisions, and require formal CHO/Project governance approval before adoption.
 
 ---
 

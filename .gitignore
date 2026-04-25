@@ -40,3 +40,5 @@ yarn-error.log*
 
 docs/references/ui
 docs/references/ui/shadcn-admin/
+# Added by code-review-graph
+.code-review-graph/
