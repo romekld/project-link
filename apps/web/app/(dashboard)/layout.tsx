@@ -25,7 +25,7 @@ export default async function DashboardLayout({
       <AppSidebar viewer={viewer} />
 
       <SidebarInset className="min-h-0 overflow-hidden">
-        <DashboardHeader hideMobileSidebarTrigger={viewer.role === "bhw"} />
+        <DashboardHeader />
         <main
           data-dashboard-scroll
           // className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pb-0 md:p-6 md:pb-0"
