@@ -12,16 +12,20 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function PwaInstallBanner() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [isIOS, setIsIOS] = useState(false)
-  const [isStandalone, setIsStandalone] = useState(true)
+  const [isIOS] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !("MSStream" in window)
+  )
+  const [isStandalone] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(display-mode: standalone)").matches
+      : true
+  )
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches)
-    setIsIOS(
-      /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window)
-    )
-
     const handler = (e: Event) => {
       e.preventDefault()
       setPrompt(e as BeforeInstallPromptEvent)

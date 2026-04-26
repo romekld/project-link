@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { logoutAction } from "@/features/auth/logout/actions"
@@ -9,12 +9,12 @@ import type { SupportedDashboardRole } from "@/features/navigation/data/types"
 const FIELD_ROLES: SupportedDashboardRole[] = ["bhw", "rhm"]
 
 export function PwaGuard({ role }: { role: SupportedDashboardRole }) {
-  const [isStandalone, setIsStandalone] = useState(false)
+  const [isStandalone] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(display-mode: standalone)").matches
+      : false
+  )
   const router = useRouter()
-
-  useEffect(() => {
-    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches)
-  }, [])
 
   if (!isStandalone || FIELD_ROLES.includes(role)) return null
 

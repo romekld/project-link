@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
+import { MustChangePasswordDialog } from "@/features/auth/change-password"
 import { getDashboardViewer } from "@/features/navigation/queries/get-dashboard-viewer"
 import { getRoleHome } from "@/features/navigation/data/role-policy"
 import { PwaInstallBanner } from "@/components/pwa-install-banner"
@@ -31,6 +32,7 @@ export default async function FieldLayout({
   return (
     <>
       {children}
+      <MustChangePasswordDialog initialOpen={viewer.mustChangePassword} />
       <PwaInstallBanner />
     </>
   )

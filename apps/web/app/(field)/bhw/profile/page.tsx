@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, CloudUpload, FolderPlus } from "lucide-react";
+import { ChevronRight, CloudUpload, FolderPlus, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { logoutAction } from "@/features/auth/logout/actions";
 import { getDashboardViewer } from "@/features/navigation/queries/get-dashboard-viewer";
 
 export default async function Page() {
   const viewer = await getDashboardViewer();
 
   if (!viewer || viewer.role !== "bhw") {
+    redirect("/login");
+  }
+
+  async function logoutAndRedirect() {
+    "use server";
+
+    await logoutAction();
     redirect("/login");
   }
 
@@ -101,6 +109,23 @@ export default async function Page() {
               <ChevronRight className="size-4 text-muted-foreground" />
             </Link>
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Session</CardTitle>
+          <CardDescription>
+            End your current session on this device.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={logoutAndRedirect}>
+            <Button type="submit" variant="outline" className="w-full rounded-2xl">
+              <LogOut className="size-4" />
+              Log out
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </section>
