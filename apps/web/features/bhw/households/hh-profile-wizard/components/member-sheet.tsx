@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
@@ -62,7 +62,6 @@ export function MemberSheet({
     register,
     control,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<MemberValues>({
@@ -76,9 +75,10 @@ export function MemberSheet({
     },
   })
 
-  const dateOfBirth = watch("dateOfBirth")
-  const sex = watch("sex")
-  const classificationQ1 = watch("classificationQ1")
+  const [dateOfBirth, sex, classificationQ1] = useWatch({
+    control,
+    name: ["dateOfBirth", "sex", "classificationQ1"],
+  })
 
   const computedAge = dateOfBirth ? computeAge(dateOfBirth) : null
   const showPhilhealthId = computedAge !== null && computedAge >= 21
