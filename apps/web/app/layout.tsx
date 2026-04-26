@@ -19,12 +19,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Project LINK",
   description: "Barangay Health Worker field operations platform.",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Project LINK",
-  },
   formatDetection: { telephone: false },
 };
 

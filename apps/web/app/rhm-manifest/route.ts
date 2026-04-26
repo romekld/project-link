@@ -1,16 +1,16 @@
-import type { MetadataRoute } from "next"
+export const dynamic = "force-static"
 
-export default function manifest(): MetadataRoute.Manifest {
-  return {
-    name: "Project LINK — BHW",
-    short_name: "LINK Field",
-    description: "Barangay Health Worker field operations — household profiling and service recording.",
-    start_url: "/bhw/dashboard",
+export function GET() {
+  const manifest = {
+    name: "Project LINK — RHM",
+    short_name: "LINK RHM",
+    description: "Rural Health Midwife operations — health station management and field coordination.",
+    start_url: "/rhm/dashboard",
     scope: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#18181b",
-    orientation: "portrait",
+    orientation: "any",
     icons: [
       {
         src: "/icons/icon-192x192.png",
@@ -27,4 +27,8 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     categories: ["health", "medical", "utilities"],
   }
+
+  return Response.json(manifest, {
+    headers: { "Content-Type": "application/manifest+json" },
+  })
 }

@@ -1,6 +1,6 @@
-import { Building2, CloudUpload, House } from "lucide-react"
+import { CircleUserRound, Folder, House } from "lucide-react";
 
-import type { SidebarSection } from "@/features/navigation/data/types"
+import type { SidebarSection } from "@/features/navigation/data/types";
 
 export const bhwNavSections = [
   {
@@ -22,24 +22,24 @@ export const bhwNavSections = [
     items: [
       {
         id: "bhw-households",
-        title: "Households",
+        title: "Household",
         href: "/bhw/households",
-        icon: Building2,
+        icon: Folder,
         match: ["/bhw/households"],
       },
     ],
   },
   {
-    id: "bhw-data",
-    label: "Data",
+    id: "bhw-account",
+    label: "Account",
     items: [
       {
-        id: "bhw-sync",
-        title: "Sync Queue",
-        href: "/bhw/sync",
-        icon: CloudUpload,
-        match: ["/bhw/sync"],
+        id: "bhw-profile",
+        title: "Profile",
+        href: "/bhw/profile",
+        icon: CircleUserRound,
+        match: ["/bhw/profile"],
       },
     ],
   },
-] satisfies SidebarSection[]
+] satisfies SidebarSection[];

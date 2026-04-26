@@ -2,6 +2,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { MustChangePasswordDialog } from "@/features/auth/change-password"
+import { PwaGuard } from "@/components/pwa-guard"
 import { getDashboardViewer } from "@/features/navigation/queries/get-dashboard-viewer"
 import { redirect } from "next/navigation"
 
@@ -12,6 +13,10 @@ export default async function DashboardLayout({
 
   if (!viewer) {
     redirect("/login")
+  }
+
+  if (viewer.role === "bhw") {
+    redirect("/bhw/dashboard")
   }
 
   return (
@@ -30,6 +35,7 @@ export default async function DashboardLayout({
         </main>
       </SidebarInset>
       <MustChangePasswordDialog initialOpen={viewer.mustChangePassword} />
+      <PwaGuard role={viewer.role} />
     </SidebarProvider>
   )
 }
