@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { Download, Share, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,26 +10,49 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
 }
 
+function getIsIOSSnapshot() {
+  if (typeof window === "undefined") return false
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window)
+}
+
+function subscribeDisplayMode(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined
+  }
+
+  const mediaQuery = window.matchMedia("(display-mode: standalone)")
+  mediaQuery.addEventListener("change", onStoreChange)
+
+  return () => mediaQuery.removeEventListener("change", onStoreChange)
+}
+
+function getDisplayModeSnapshot() {
+  if (typeof window === "undefined") return true
+  return window.matchMedia("(display-mode: standalone)").matches
+}
+
 export function PwaInstallBanner() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [isIOS] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !("MSStream" in window)
-  )
-  const [isStandalone] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(display-mode: standalone)").matches
-      : true
-  )
   const [dismissed, setDismissed] = useState(false)
+
+  const isIOS = useSyncExternalStore(
+    () => () => undefined,
+    getIsIOSSnapshot,
+    () => false
+  )
+
+  const isStandalone = useSyncExternalStore(
+    subscribeDisplayMode,
+    getDisplayModeSnapshot,
+    () => true
+  )
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault()
       setPrompt(e as BeforeInstallPromptEvent)
     }
+
     window.addEventListener("beforeinstallprompt", handler)
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [])
@@ -46,8 +69,8 @@ export function PwaInstallBanner() {
 
   return (
     <div className="fixed bottom-20 left-0 right-0 z-50 px-4 pb-2 md:bottom-4">
-      <Card className="border-border shadow-lg">
-        <CardContent className="flex items-center gap-3 p-3">
+      <Card className="border-border">
+        <CardContent className="flex items-center gap-3">
           {isIOS ? (
             <>
               <Share className="h-5 w-5 shrink-0 text-muted-foreground" />

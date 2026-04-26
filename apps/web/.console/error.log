@@ -1,5 +1,4 @@
 forward-logs-shared.ts:95 [HMR] connected
-forward-logs-shared.ts:95 [Fast Refresh] rebuilding
 installHook.js:1 Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template).
 overrideMethod @ installHook.js:1
 error @ intercept-console-error.ts:48
@@ -217,7 +216,7 @@ performWorkOnRoot @ react-dom-client.development.js:17822
 performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:20471
 performWorkUntilDeadline @ scheduler.development.js:45
 <FieldLayout>
-Promise.all @ VM1171 <anonymous>:1
+Promise.all @ VM1361 <anonymous>:1
 initializeFakeTask @ react-server-dom-turbopack-client.browser.development.js:3454
 initializeDebugInfo @ react-server-dom-turbopack-client.browser.development.js:3479
 fulfillReference @ react-server-dom-turbopack-client.browser.development.js:2118
@@ -258,4 +257,5 @@ await in registerChunk
 registerChunk @ dev-base.ts:562
 (anonymous) @ dev-backend-dom.ts:145
 (anonymous) @ dev-backend-dom.ts:145
-forward-logs-shared.ts:95 [Fast Refresh] done in 1219ms
+forward-logs-shared.ts:95 [Fast Refresh] rebuilding
+forward-logs-shared.ts:95 [Fast Refresh] done in 340ms
