@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
@@ -45,7 +45,6 @@ export function StepHouseholdInfo({
     register,
     control,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<HouseholdInfoValues>({
     resolver: zodResolver(householdInfoSchema),
@@ -57,7 +56,10 @@ export function StepHouseholdInfo({
     },
   })
 
-  const philhealthMember = watch("hhHeadPhilhealthMember")
+  const philhealthMember = useWatch({
+    control,
+    name: "hhHeadPhilhealthMember",
+  })
 
   return (
     <form onSubmit={handleSubmit(onNext)} className="flex flex-col gap-4">
