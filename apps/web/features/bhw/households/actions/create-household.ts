@@ -2,6 +2,9 @@
 
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import type { Database } from "@/lib/supabase/database.types"
+
+type ClassificationCode = Database["public"]["Enums"]["classification_code"]
 
 const memberInputSchema = z.object({
   id: z.string(),
@@ -67,13 +70,7 @@ export async function createHousehold(
 
   const d = parsed.data
 
-  // NOTE: `households` and `household_members` tables are not yet present in the
-  // generated Supabase Database type. Cast to `any` so this server action compiles
-  // until `pnpm exec supabase gen types` is re-run after the migration.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any
-
-  const { data: household, error: hhError } = await sb
+  const { data: household, error: hhError } = await supabase
     .from("households")
     .insert({
       local_id: d.localId,
@@ -114,12 +111,12 @@ export async function createHousehold(
       sex: m.sex,
       date_of_birth: m.dateOfBirth,
       dob_estimated: m.dobEstimated,
-      classification_q1: m.classificationQ1 ?? null,
+      classification_q1: (m.classificationQ1 ?? null) as ClassificationCode | null,
       member_philhealth_id: m.memberPhilhealthId,
       member_remarks: m.memberRemarks,
     }))
 
-    const { error: membersError } = await sb
+    const { error: membersError } = await supabase
       .from("household_members")
       .insert(memberRows)
 
