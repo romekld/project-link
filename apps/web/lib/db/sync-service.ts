@@ -22,7 +22,14 @@ export async function syncPending(): Promise<void> {
       isIndigenousPeople: hh.isIndigenousPeople,
       hhHeadPhilhealthMember: hh.hhHeadPhilhealthMember,
       hhHeadPhilhealthId: hh.hhHeadPhilhealthId,
-      hhHeadPhilhealthCategory: hh.hhHeadPhilhealthCategory as any,
+      hhHeadPhilhealthCategory:
+        hh.hhHeadPhilhealthCategory as
+          | "Formal Economy"
+          | "Informal Economy"
+          | "Indigent/Sponsored"
+          | "Senior Citizen"
+          | "Other"
+          | undefined,
       houseNoStreet: hh.houseNoStreet,
       purok: hh.purok,
       barangayId: hh.barangayId,

@@ -47,7 +47,7 @@ export async function createHousehold(
 ): Promise<{ id: string } | { error: string }> {
   const parsed = createHouseholdSchema.safeParse(input)
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? "Invalid input" }
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
   }
 
   const supabase = await createClient()
@@ -67,7 +67,13 @@ export async function createHousehold(
 
   const d = parsed.data
 
-  const { data: household, error: hhError } = await supabase
+  // NOTE: `households` and `household_members` tables are not yet present in the
+  // generated Supabase Database type. Cast to `any` so this server action compiles
+  // until `pnpm exec supabase gen types` is re-run after the migration.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
+  const { data: household, error: hhError } = await sb
     .from("households")
     .insert({
       local_id: d.localId,
@@ -113,7 +119,7 @@ export async function createHousehold(
       member_remarks: m.memberRemarks,
     }))
 
-    const { error: membersError } = await supabase
+    const { error: membersError } = await sb
       .from("household_members")
       .insert(memberRows)
 
