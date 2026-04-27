@@ -9,34 +9,41 @@ import {
 
 describe("dashboard aggregations", () => {
   it("counts users needing attention without double-counting a user", () => {
+    const currentMonthDate = new Date();
+    currentMonthDate.setDate(2);
+    currentMonthDate.setHours(0, 0, 0, 0);
+
+    const previousMonthDate = new Date(currentMonthDate);
+    previousMonthDate.setMonth(previousMonthDate.getMonth() - 1);
+
     const analytics = buildUserAnalytics([
       {
         id: "user-1",
         role: "system_admin",
         status: "active",
         mustChangePassword: true,
-        createdAt: "2026-04-02T00:00:00.000Z",
+        createdAt: currentMonthDate.toISOString(),
       },
       {
         id: "user-2",
         role: "bhw",
         status: "invited",
         mustChangePassword: false,
-        createdAt: "2026-04-03T00:00:00.000Z",
+        createdAt: currentMonthDate.toISOString(),
       },
       {
         id: "user-3",
         role: "rhm",
         status: "active",
         mustChangePassword: false,
-        createdAt: "2026-04-04T00:00:00.000Z",
+        createdAt: currentMonthDate.toISOString(),
       },
       {
         id: "user-4",
         role: "phn",
         status: "suspended",
         mustChangePassword: true,
-        createdAt: "2026-03-01T00:00:00.000Z",
+        createdAt: previousMonthDate.toISOString(),
       },
     ]);
 
@@ -44,6 +51,7 @@ describe("dashboard aggregations", () => {
     expect(analytics.usersNeedingAttention).toBe(3);
     expect(analytics.passwordChangeUsers).toBe(2);
     expect(analytics.nonActiveUsers).toBe(2);
+    expect(analytics.usersCreatedThisMonth).toBe(3);
     expect(
       analytics.usersByRole.find((item) => item.role === "system_admin")?.count,
     ).toBe(1);
