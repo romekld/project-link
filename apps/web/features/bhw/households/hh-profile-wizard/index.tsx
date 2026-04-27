@@ -11,6 +11,7 @@ import { StepHouseholdInfo } from "./components/step-household-info"
 import { StepMemberRoster } from "./components/step-member-roster"
 import { StepReview } from "./components/step-review"
 import type { HouseholdInfoValues, MemberValues } from "./data/form-schema"
+import { createHousehold } from "@/features/bhw/households/actions/create-household"
 
 const STEP_1_FORM_ID = "wizard-step-household-info"
 
@@ -53,9 +54,22 @@ export function HhProfileWizard({ mode, quarterLabel }: HhProfileWizardProps) {
   }
 
   async function handleSubmit() {
+    if (!householdInfo) return
     setIsSubmitting(true)
-    await new Promise((r) => setTimeout(r, 800))
-    toast.success("HH Profile saved locally. Will sync when online.")
+
+    const result = await createHousehold({
+      ...householdInfo,
+      members,
+    })
+
+    setIsSubmitting(false)
+
+    if ("error" in result) {
+      toast.error(`Failed to save: ${result.error}`)
+      return
+    }
+
+    toast.success("Household saved and submitted for review.")
     router.push("/bhw/households")
   }
 
