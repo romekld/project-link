@@ -88,6 +88,29 @@ export function StepReview({
                 )}
               </dd>
             </div>
+            {householdInfo.houseNoStreet && (
+              <div className="grid grid-cols-[120px_1fr] gap-2">
+                <dt className="text-muted-foreground">Address</dt>
+                <dd>
+                  {householdInfo.houseNoStreet}
+                  {householdInfo.purok ? `, ${householdInfo.purok}` : ""}
+                </dd>
+              </div>
+            )}
+            {householdInfo.barangayName && (
+              <div className="grid grid-cols-[120px_1fr] gap-2">
+                <dt className="text-muted-foreground">Barangay</dt>
+                <dd>{householdInfo.barangayName}, Dasmariñas, Cavite</dd>
+              </div>
+            )}
+            <div className="grid grid-cols-[120px_1fr] gap-2">
+              <dt className="text-muted-foreground">Location pin</dt>
+              <dd>
+                {householdInfo.latitude != null && householdInfo.longitude != null
+                  ? `${householdInfo.latitude.toFixed(6)}, ${householdInfo.longitude.toFixed(6)}`
+                  : <span className="text-muted-foreground italic">No pin set</span>}
+              </dd>
+            </div>
           </dl>
         </CardContent>
       </Card>
