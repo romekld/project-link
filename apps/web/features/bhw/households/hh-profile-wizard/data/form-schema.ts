@@ -12,6 +12,14 @@ export const householdInfoSchema = z.object({
   hhHeadPhilhealthCategory: z
     .enum(["Formal Economy", "Informal Economy", "Indigent/Sponsored", "Senior Citizen", "Other"])
     .optional(),
+  // Address fields
+  houseNoStreet: z.string().min(1, "House No. & Street is required"),
+  purok: z.string().optional(),
+  barangayId: z.string().uuid("Please select a barangay"),
+  barangayName: z.string().optional(),
+  // Location
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 })
 
 export const memberSchema = z.object({
