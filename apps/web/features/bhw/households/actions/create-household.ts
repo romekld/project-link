@@ -2,6 +2,9 @@
 
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import type { Database } from "@/lib/supabase/database.types"
+
+type ClassificationCode = Database["public"]["Enums"]["classification_code"]
 
 const memberInputSchema = z.object({
   id: z.string(),
@@ -47,7 +50,7 @@ export async function createHousehold(
 ): Promise<{ id: string } | { error: string }> {
   const parsed = createHouseholdSchema.safeParse(input)
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? "Invalid input" }
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
   }
 
   const supabase = await createClient()
@@ -108,7 +111,7 @@ export async function createHousehold(
       sex: m.sex,
       date_of_birth: m.dateOfBirth,
       dob_estimated: m.dobEstimated,
-      classification_q1: m.classificationQ1 ?? null,
+      classification_q1: (m.classificationQ1 ?? null) as ClassificationCode | null,
       member_philhealth_id: m.memberPhilhealthId,
       member_remarks: m.memberRemarks,
     }))

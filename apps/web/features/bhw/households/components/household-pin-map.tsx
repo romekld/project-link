@@ -7,11 +7,16 @@ import {
   isPointInGeometry,
   getGeometryCentroid,
 } from "@/features/health-stations/pin-map/data"
+import type {
+  GisPointFeature,
+  GisPointFeatureCollection,
+  GisPolygonFeatureCollection,
+} from "@/features/gis-map/data/types"
 
 type PinCoordinates = { lat: number; lng: number }
 
 type HouseholdPinMapProps = {
-  barangayBoundary: any | null // GisPolygonFeatureCollection — typed as any to avoid import issues
+  barangayBoundary: GisPolygonFeatureCollection | null
   barangayId: string | null
   currentPin: PinCoordinates | null
   onPinChange: (pin: PinCoordinates | null) => void
@@ -27,7 +32,7 @@ export function HouseholdPinMap({
 }: HouseholdPinMapProps) {
   const [dragPin, setDragPin] = useState<PinCoordinates | null>(currentPin)
 
-  const pointCollection = dragPin
+  const pointCollection: GisPointFeatureCollection = dragPin
     ? {
         type: "FeatureCollection" as const,
         features: [
@@ -36,10 +41,10 @@ export function HouseholdPinMap({
             id: PLACEHOLDER_PIN_ID,
             geometry: { type: "Point" as const, coordinates: [dragPin.lng, dragPin.lat] },
             properties: { id: PLACEHOLDER_PIN_ID },
-          },
+          } as GisPointFeature,
         ],
       }
-    : { type: "FeatureCollection" as const, features: [] as any[] }
+    : { type: "FeatureCollection" as const, features: [] }
 
   const handlePointDrag = useCallback(({ lat, lng }: PinCoordinates) => {
     setDragPin({ lat, lng })
@@ -54,7 +59,11 @@ export function HouseholdPinMap({
         return
       }
 
-      const boundary = barangayBoundary.features[0]?.geometry
+      const rawGeometry = barangayBoundary.features[0]?.geometry
+      const boundary =
+        rawGeometry && (rawGeometry.type === "Polygon" || rawGeometry.type === "MultiPolygon")
+          ? rawGeometry
+          : null
       if (boundary && !isPointInGeometry([lng, lat], boundary)) {
         const centroid = boundary ? getGeometryCentroid(boundary) : null
         const snapTo = centroid ? { lat: centroid.lat, lng: centroid.lng } : currentPin
@@ -74,7 +83,7 @@ export function HouseholdPinMap({
     <div className="relative h-64 w-full overflow-hidden rounded-md border">
       <StationPinMap
         boundaryCollection={barangayBoundary ?? { type: "FeatureCollection", features: [] }}
-        pointCollection={pointCollection as any}
+        pointCollection={pointCollection}
         selectedBoundaryId={barangayId}
         selectedPointId={dragPin ? PLACEHOLDER_PIN_ID : null}
         draggablePointId={PLACEHOLDER_PIN_ID}

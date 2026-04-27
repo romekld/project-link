@@ -11,7 +11,7 @@ export function QuickActionCards({ draftCount }: QuickActionCardsProps) {
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <Button
         asChild
-        className="justify-start gap-3 py-3 text-left"
+        className="justify-start gap-3 py-3 text-left h-13"
       >
         <Link href="/bhw/households/new">
           <Plus className="size-5 shrink-0" />
@@ -25,7 +25,7 @@ export function QuickActionCards({ draftCount }: QuickActionCardsProps) {
       <Button
         asChild
         variant="outline"
-        className="justify-start gap-3 py-3 text-left"
+        className="justify-start gap-3 py-3 text-left h-13" 
         disabled={draftCount === 0}
       >
         <Link href="/bhw/households?status=draft">
