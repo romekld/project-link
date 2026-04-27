@@ -4,6 +4,8 @@ import { SyncStatusBanner } from "./components/sync-status-banner"
 import { ReturnedRecordsAlert } from "./components/returned-records-alert"
 import { QuickActionCards } from "./components/quick-action-cards"
 import { HouseholdsSummaryCard } from "./components/households-summary-card"
+import { SummaryStatsGrid } from "./components/summary-stats-grid"
+import { RecentActivityList } from "./components/recent-activity-list"
 import type { mockBhwDashboard } from "./data/mock"
 
 type BhwDashboardPageProps = typeof mockBhwDashboard
@@ -19,6 +21,8 @@ export function BhwDashboardPage({
   returnedCount,
   draftCount,
   households,
+  stats,
+  recentHouseholds,
 }: BhwDashboardPageProps) {
   const firstName = bhwName.split(" ")[0]
 
@@ -39,6 +43,13 @@ export function BhwDashboardPage({
 
       <ReturnedRecordsAlert count={returnedCount} />
 
+      <SummaryStatsGrid
+        total={stats.total}
+        pendingSync={stats.pendingSync}
+        validated={stats.validated}
+        returned={stats.returned}
+      />
+
       <QuickActionCards draftCount={draftCount} />
 
       <HouseholdsSummaryCard
@@ -48,6 +59,8 @@ export function BhwDashboardPage({
         quarter={currentQuarter}
         year={currentYear}
       />
+
+      <RecentActivityList households={recentHouseholds} />
     </section>
   )
 }
