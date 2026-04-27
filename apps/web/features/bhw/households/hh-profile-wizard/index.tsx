@@ -124,7 +124,7 @@ export function HhProfileWizard({ mode, quarterLabel }: HhProfileWizardProps) {
       </div>
 
       {/* Sticky navigation footer — sits above bottom nav on mobile */}
-      <div className="sticky bottom-16 z-20 -mx-4 border-t bg-background px-4 py-3 md:bottom-0 md:-mx-6 md:px-6">
+      <div className="sticky bottom-0 z-20 -mx-4 border-t bg-background px-4 py-3 md:-mx-6 md:px-6">
         {step === 1 && (
           <Button type="submit" form={STEP_1_FORM_ID} size="lg" className="w-full">
             Continue to Members
