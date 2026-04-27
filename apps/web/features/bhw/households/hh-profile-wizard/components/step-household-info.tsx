@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, ChevronDown, ChevronUp, MapPin } from "lucide-react"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +27,9 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { householdInfoSchema, type HouseholdInfoValues } from "../data/form-schema"
+import { BarangayCombobox } from "@/features/bhw/households/components/barangay-combobox"
+import { HouseholdPinMap } from "@/features/bhw/households/components/household-pin-map"
+import type { BarangayOption } from "@/features/bhw/households/components/barangay-combobox"
 
 type StepHouseholdInfoProps = {
   formId: string
@@ -47,6 +50,7 @@ export function StepHouseholdInfo({
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<HouseholdInfoValues>({
     resolver: zodResolver(householdInfoSchema),
@@ -62,6 +66,21 @@ export function StepHouseholdInfo({
     control,
     name: "hhHeadPhilhealthMember",
   })
+
+  // Mock barangay data — replace with real Supabase query next session
+  const mockBarangays: BarangayOption[] = [
+    { id: "00000000-0000-0000-0000-000000000001", name: "Burol" },
+    { id: "00000000-0000-0000-0000-000000000002", name: "Burol I" },
+    { id: "00000000-0000-0000-0000-000000000003", name: "Burol II" },
+    { id: "00000000-0000-0000-0000-000000000004", name: "Burol III" },
+    { id: "00000000-0000-0000-0000-000000000005", name: "Emmanuel Perez" },
+  ]
+
+  const [pinExpanded, setPinExpanded] = useState(false)
+
+  const watchedBarangayId = useWatch({ control, name: "barangayId" })
+  const watchedLat = useWatch({ control, name: "latitude" })
+  const watchedLng = useWatch({ control, name: "longitude" })
 
   return (
     <form id={formId} onSubmit={handleSubmit(onNext)} className="flex flex-col gap-4">
@@ -207,6 +226,66 @@ export function StepHouseholdInfo({
         </CardContent>
       </Card>
 
+      {/* Address */}
+      <Card>
+        <CardHeader className="border-b pb-3 pt-4">
+          <CardTitle className="text-base">Address</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4 flex flex-col gap-4">
+          <Field>
+            <FieldLabel htmlFor="houseNoStreet">House No. &amp; Street</FieldLabel>
+            <Input
+              id="houseNoStreet"
+              placeholder="e.g. 123 Rizal St."
+              {...register("houseNoStreet")}
+            />
+            <FieldError>{errors.houseNoStreet?.message}</FieldError>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="purok">
+              Purok{" "}
+              <span className="text-muted-foreground font-normal">(optional)</span>
+            </FieldLabel>
+            <Input
+              id="purok"
+              placeholder="e.g. Purok 3"
+              {...register("purok")}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel>Barangay</FieldLabel>
+            <Controller
+              control={control}
+              name="barangayId"
+              render={({ field }) => (
+                <BarangayCombobox
+                  barangays={mockBarangays}
+                  value={field.value ?? null}
+                  onSelect={(id, name) => {
+                    field.onChange(id)
+                    setValue("barangayName", name)
+                  }}
+                />
+              )}
+            />
+            <FieldError>{errors.barangayId?.message}</FieldError>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field>
+              <FieldLabel htmlFor="municipality">Municipality</FieldLabel>
+              <Input id="municipality" value="Dasmariñas" disabled readOnly />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="province">Province</FieldLabel>
+              <Input id="province" value="Cavite" disabled readOnly />
+            </Field>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="border-b pb-3 pt-4">
           <CardTitle className="text-base">PhilHealth — HH Head</CardTitle>
@@ -280,6 +359,71 @@ export function StepHouseholdInfo({
             )}
           </FieldGroup>
         </CardContent>
+      </Card>
+
+      {/* Location Pin (optional, collapsible) */}
+      <Card>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-6 pb-3 pt-4"
+          onClick={() => setPinExpanded((v) => !v)}
+          aria-expanded={pinExpanded}
+        >
+          <div className="flex items-center gap-2">
+            <MapPin className="size-4 text-muted-foreground" />
+            <span className="text-base font-semibold">Household Location</span>
+            <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+          </div>
+          {pinExpanded ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
+        </button>
+
+        {pinExpanded && (
+          <CardContent className="pt-0 flex flex-col gap-3">
+            {!watchedBarangayId ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Select a barangay first to enable pinning
+              </p>
+            ) : (
+              <>
+                <HouseholdPinMap
+                  barangayBoundary={null}
+                  barangayId={watchedBarangayId ?? null}
+                  currentPin={
+                    watchedLat != null && watchedLng != null
+                      ? { lat: watchedLat, lng: watchedLng }
+                      : null
+                  }
+                  onPinChange={(pin) => {
+                    setValue("latitude", pin?.lat ?? null)
+                    setValue("longitude", pin?.lng ?? null)
+                  }}
+                />
+                {watchedLat != null && watchedLng != null && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {watchedLat.toFixed(6)}, {watchedLng.toFixed(6)}
+                  </p>
+                )}
+                {watchedLat != null && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setValue("latitude", null)
+                      setValue("longitude", null)
+                    }}
+                  >
+                    Clear pin
+                  </Button>
+                )}
+              </>
+            )}
+          </CardContent>
+        )}
       </Card>
 
     </form>
