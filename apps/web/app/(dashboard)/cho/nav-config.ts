@@ -29,6 +29,13 @@ export const choNavSections = [
           },
         ],
       },
+      {
+        id: "cho-analytics-gis",
+        title: "Analytics GIS",
+        href: "/cho/analytics/gis",
+        icon: MapIcon,
+        match: ["/cho/analytics/gis"],
+      },
     ],
   },
 ] satisfies SidebarSection[]
