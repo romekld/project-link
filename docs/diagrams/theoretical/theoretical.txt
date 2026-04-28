@@ -1,0 +1,394 @@
+PROJECT LINK - DETAILED SYSTEM ARCHITECTURE (INPUT-OUTPUT FLOWS)
+================================================================
+
+SYSTEM ADMINISTRATOR
+═══════════════════
+
+INPUTS:
+  ├─ User registration requests (email, role)
+  ├─ BHS configuration changes (location, staff assignments)
+  ├─ System permission updates
+  └─ System audit/health checks
+
+PROCESSES:
+  ├─ Validate user credentials
+  ├─ Assign roles (bhw, rhm, phn, cho, system_admin)
+  ├─ Activate/deactivate accounts
+  ├─ Configure BHS metadata (boundaries, jurisdiction)
+  └─ Monitor system health & performance
+
+OUTPUTS:
+  ├─ User account credentials (login, temporary password)
+  ├─ Role-based access tokens
+  ├─ BHS configuration confirmations
+  └─ System health reports
+
+TARGET MODULES: Account Management
+
+
+BARANGAY HEALTH WORKER (BHW)
+════════════════════════════
+
+INPUTS (Field Operations Module):
+  ├─ Client demographics (name, age, address, contact)
+  ├─ Visit date & time
+  ├─ Chief complaint / reason for visit
+  ├─ Vital signs (BP, temp, weight, height)
+  ├─ Services provided (vaccination, family planning, wound care)
+  └─ Referral decisions (if high-risk)
+
+PROCESSES:
+  ├─ Capture visit data offline using IndexedDB
+  ├─ Auto-save form to local storage (progressive saving)
+  ├─ Validate required fields (BP, date, client ID)
+  ├─ Generate client-side record ID (UUID)
+  ├─ Queue record as PENDING_SYNC
+  └─ Sync to server when connectivity returns (POST /api/v1/sync)
+
+OUTPUTS (to Records Management):
+  ├─ Raw visit record (JSON)
+  ├─ Client identification + demographics
+  ├─ Encounter details (date, vitals, services)
+  ├─ Sync status confirmations
+  └─ Conflict resolution feedback (if edit post-sync)
+
+SECONDARY OUTPUTS (Field Operations):
+  ├─ Offline data cache status
+  └─ Pending sync record count
+
+
+RURAL HEALTH MIDWIFE (RHM)
+══════════════════════════
+
+INPUTS (Records Management Module):
+  ├─ BHW visit records (demographic + encounter data)
+  ├─ TCL (Tally Consolidation List) draft
+  ├─ High-risk flags from BHW (BP, nutritional status, disease)
+  ├─ Record validation requests
+  └─ Correction/amendment requests from BHW
+
+PROCESSES - VALIDATION:
+  ├─ Review visit record completeness (all required fields present?)
+  ├─ Check clinical plausibility (BP > 140/90? → flag as high-risk)
+  ├─ Verify age-appropriate services (vaccination for correct age?)
+  ├─ Cross-check maternal/child health flags
+  ├─ Identify data entry errors (typos, out-of-range values)
+  └─ Generate validation status (PENDING_VALIDATION → VALIDATED or RETURNED)
+
+PROCESSES - SUMMARY TABLE GENERATION:
+  ├─ Auto-tally all VALIDATED records for period (e.g., monthly)
+  ├─ Group by indicator (e.g., prenatal visits, children vaccinated)
+  ├─ Count totals per health indicator
+  ├─ Generate Summary Table (ST) snapshot
+  ├─ Attach metadata (station name, period, RHM signature)
+  └─ Mark ST ready for consolidation
+
+OUTPUTS (to Records Management):
+  ├─ Validation feedback (ACCEPTED or RETURN_REASON)
+  ├─ High-risk alerts (patient name, condition, severity)
+  ├─ Summary Table (ST) with totals per indicator
+  ├─ Approval status (ST ready for CHO review?)
+  └─ Audit trail (validator name, timestamp, changes made)
+
+
+PUBLIC HEALTH NURSE (PHN)
+═════════════════════════
+
+INPUTS (Reports Management Module):
+  ├─ 32 Summary Tables (one per BHS for the period)
+  ├─ ST approval status from each RHM
+  ├─ High-risk case logs (disease alerts, maternal emergencies)
+  ├─ Quality checks from RHM validations
+  └─ Data completeness metrics per BHS
+
+PROCESSES - CONSOLIDATION:
+  ├─ Verify all 32 STs received & approved
+  ├─ Cross-check BHS coverage (32/32?)
+  ├─ Merge ST totals by indicator across all BHS
+  ├─ Auto-sum disease case counts (dengue, COVID, TB, etc.)
+  ├─ Flag missing or incomplete STs
+  ├─ Generate Monthly Consolidation Table (MCT)
+  └─ Attach metadata (CHO II jurisdiction, period, PHN signature)
+
+PROCESSES - REPORT GENERATION:
+  ├─ Format MCT data into FHSIS M1 template (individual indicators)
+  ├─ Format MCT data into FHSIS M2 template (disease summary)
+  ├─ Calculate derived indicators (immunization coverage %, etc.)
+  ├─ Generate PDF/XLSX exports with official DOH headers
+  └─ Prepare submission package (audit-ready)
+
+OUTPUTS (to Reports Management):
+  ├─ Monthly Consolidation Table (MCT) summary
+  ├─ Disease trend report (cases per condition, month-over-month)
+  ├─ BHS compliance report (which stations submitted/approved?)
+  ├─ M1 & M2 official export files (PDF + XLSX)
+  ├─ Data quality summary (completeness %, outliers flagged)
+  └─ Submission readiness confirmation
+
+
+CITY HEALTH OFFICER (CHO)
+═════════════════════════
+
+INPUTS (Health Stations Management Module):
+  ├─ Monthly Consolidation Table (MCT) from PHN
+  ├─ Disease alerts from Records Management (in real-time via WebSocket)
+  ├─ BHS compliance reports (submission rates, data quality)
+  ├─ High-risk patient cases (maternal, neonatal, disease alerts)
+  ├─ System audit logs (user activity, data changes)
+  └─ Fiscal/budget utilization reports
+
+PROCESSES - DATA QUALITY CONTROL:
+  ├─ Review MCT for outliers & anomalies
+  ├─ Verify FHSIS formula compliance (M1/M2 calculations correct?)
+  ├─ Cross-reference disease case counts with case investigation logs
+  ├─ Check BHS coverage completeness
+  ├─ Flag data inconsistencies for RHM/PHN correction
+  └─ Approve MCT for final submission or request revision
+
+PROCESSES - MONITORING & RESPONSE:
+  ├─ Receive real-time disease alerts (Category I case → immediate notification)
+  ├─ Review daily health station status dashboard
+  ├─ Monitor BHS personnel attendance & activity logs
+  ├─ Track immunization/maternal care coverage trends
+  ├─ Identify performance bottlenecks (slow data submission)
+  └─ Authorize corrective actions (retraining, equipment, staffing)
+
+PROCESSES - REPORTING & SUBMISSION:
+  ├─ Perform final data validation (DQC sign-off)
+  ├─ Approve M1/M2 exports for official submission
+  ├─ Route to DOH via eDOCS portal
+  ├─ Maintain submission archive & audit trail
+  └─ Respond to DOH feedback/data requests
+
+OUTPUTS (to Health Stations Management):
+  ├─ MCT approval status (APPROVED for submission or RETURN_FOR_REVISION)
+  ├─ DQC completion sign-off
+  ├─ Disease response directives (increased surveillance, intervention)
+  ├─ BHS performance feedback (commendations, improvement targets)
+  ├─ System alerts & action items (staff shortages, equipment needed)
+  └─ Monthly dashboard snapshot (disease trends, coverage rates)
+
+
+ACCOUNT MANAGEMENT MODULE (Cross-cutting)
+═══════════════════════════════════════════
+
+INPUTS:
+  ├─ User creation requests (System Admin)
+  ├─ Role assignments
+  ├─ Permission change requests
+  └─ Deactivation/access revocation
+
+PROCESSES:
+  ├─ Validate user credentials against database
+  ├─ Apply RLS (Row-Level Security) policies per role
+  ├─ Generate session tokens (JWT)
+  ├─ Gate access to Records Management (RHM only sees own BHS data)
+  ├─ Gate access to Reports Management (PHN sees all STs; CHO approves MCT)
+  └─ Audit all access attempts (login, data queries, exports)
+
+OUTPUTS (Access Control to other modules):
+  ├─ Session tokens with role claims
+  ├─ RLS enforcement (BHS-scoped data isolation)
+  ├─ Access audit logs
+  └─ Permission denial notices
+
+
+FIELD OPERATIONS MODULE
+═══════════════════════
+
+INPUTS: BHW visit data (from offline capture)
+  ├─ Client demographics
+  ├─ Visit date/time
+  ├─ Chief complaint
+  ├─ Vitals & services
+  └─ Referral flags
+
+PROCESSES:
+  ├─ Validate data completeness
+  ├─ Check for duplicate visits (same client, same date?)
+  ├─ Flag missing required fields
+  ├─ Generate unique record ID (if not already assigned by BHW)
+  └─ Queue for sync to server
+
+OUTPUTS (to Records Management):
+  ├─ Validated raw visit record (JSON)
+  ├─ Record status (READY_FOR_SYNC)
+  ├─ Sync queue metadata (record count, data size)
+  └─ Error/rejection notices (for duplicate or invalid records)
+
+
+RECORDS MANAGEMENT MODULE
+═════════════════════════
+
+INPUTS:
+  FROM Field Operations:
+    ├─ Raw visit records (BHW captures)
+    └─ Sync confirmations
+  
+  FROM RHM:
+    ├─ Validation decisions (ACCEPT / RETURN)
+    ├─ High-risk flags
+    └─ Corrections/amendments
+
+PROCESSES - STORAGE:
+  ├─ Persist visit records to Postgres (RLS-scoped by BHS)
+  ├─ Track record status lifecycle (PENDING_VALIDATION → VALIDATED → ARCHIVED)
+  ├─ Store audit trail (who validated, when, any changes)
+  ├─ Maintain historical versions (for traceability)
+  └─ Index records for fast PHN/RHM queries
+
+PROCESSES - TCL GENERATION (Zero-Tally):
+  ├─ Auto-query all VALIDATED records for period + BHS
+  ├─ Aggregate by health indicator (prenatal visits, immunizations, etc.)
+  ├─ Count totals per indicator
+  ├─ Generate TCL on-demand (not manually tallied)
+  ├─ Format TCL for RHM Summary Table generation
+  └─ Timestamp TCL snapshot
+
+OUTPUTS:
+  TO RHM (Records for Validation):
+    ├─ Pending validation queue (visit records waiting for RHM review)
+    ├─ Validation request notifications
+    ├─ Bulk import confirmations
+    └─ Data entry error reports
+
+  TO Reports Management (TCL & Validated Data):
+    ├─ TCL summary (totals per indicator for period)
+    ├─ Validation metadata (count of accepted/returned records)
+    ├─ High-risk case list (for disease surveillance)
+    └─ Data completeness metrics
+
+
+REPORTS MANAGEMENT MODULE
+═════════════════════════
+
+INPUTS:
+  FROM Records Management:
+    ├─ TCL summaries (auto-tallied from VALIDATED records)
+    ├─ High-risk case logs
+    └─ Data quality metrics
+  
+  FROM RHM:
+    ├─ Summary Tables (ST)
+    └─ RHM approval status
+  
+  FROM PHN:
+    ├─ ST review feedback
+    └─ Consolidation readiness checks
+
+PROCESSES - MCT GENERATION:
+  ├─ Merge 32 STs (one per BHS) into single Monthly Consolidation Table
+  ├─ Validate all BHS represented (32/32?)
+  ├─ Auto-sum indicator totals across BHS
+  ├─ Flag anomalies (0 visits for entire month? → data quality issue)
+  ├─ Generate MCT snapshot with metadata
+  └─ Queue for CHO approval
+
+PROCESSES - EXPORT & FORMATTING:
+  ├─ Transform MCT into FHSIS M1 format (individual health indicators)
+  ├─ Transform MCT into FHSIS M2 format (disease summary table)
+  ├─ Calculate derived indicators (% of target achieved)
+  ├─ Apply DOH report headers & standard layout
+  ├─ Generate PDF (for printable submission)
+  ├─ Generate XLSX (for data audit)
+  └─ Digitally sign exports (if required)
+
+OUTPUTS:
+  TO PHN (for consolidation & review):
+    ├─ MCT draft (for PHN consolidation tasks)
+    ├─ ST completeness checks
+    ├─ BHS compliance report
+    └─ Data quality flags
+
+  TO CHO (for approval & submission):
+    ├─ Final MCT (signed by PHN)
+    ├─ M1 & M2 official exports (PDF + XLSX)
+    ├─ Disease trend report (case counts by condition)
+    ├─ Submission package (ready for DOH eDOCS)
+    └─ DQC completion sign-off
+
+
+HEALTH STATIONS MANAGEMENT MODULE
+══════════════════════════════════
+
+INPUTS:
+  FROM System Admin:
+    ├─ BHS metadata (location, staff)
+    └─ Configuration changes
+  
+  FROM Account Management:
+    ├─ User access logs (who logged in, when)
+    └─ Permission audit trail
+  
+  FROM Records Management:
+    ├─ Real-time disease alerts (via WebSocket)
+    ├─ High-risk case notifications
+    └─ Daily activity metrics (records submitted today)
+  
+  FROM CHO:
+    ├─ Approval status changes
+    ├─ Performance feedback
+    └─ Corrective action directives
+
+PROCESSES - MONITORING:
+  ├─ Track BHS activity metrics (visits/day, records submitted)
+  ├─ Monitor data submission timeliness (ST submitted on time?)
+  ├─ Log disease cases by type (dengue, COVID, TB, etc.)
+  ├─ Broadcast real-time alerts (Category I disease case detected)
+  ├─ Maintain alert history & resolution log
+  └─ Generate BHS performance scorecards
+
+PROCESSES - ALERT MANAGEMENT:
+  ├─ Receive disease alert from Records Management (Category I case)
+  ├─ Validate alert data (patient info, disease classification)
+  ├─ Broadcast to CHO via WebSocket (real-time notification)
+  ├─ Log alert in audit_logs (append-only, no deletes)
+  ├─ Track alert resolution status (acknowledged, investigated, closed)
+  └─ Generate alert summary reports
+
+OUTPUTS:
+  TO CHO (Real-time & Summary):
+    ├─ Disease alerts (WebSocket notifications)
+    ├─ MCT dashboard view (disease trends, coverage rates)
+    ├─ BHS status report (operational, data quality, compliance)
+    ├─ Alert acknowledgment confirmations
+    └─ System performance metrics (uptime, response times)
+
+
+DATABASE (Postgres) - Data Persistence
+═══════════════════════════════════════
+
+Tables Written By:
+
+Field Operations / Records Management:
+  ├─ visits (raw BHW visit records)
+  ├─ clients (patient demographics)
+  ├─ validations (RHM review & status changes)
+  └─ audit_logs (all changes, append-only per RA 10173)
+
+Records Management:
+  ├─ tally_consolidation_list (auto-generated per period/BHS)
+  └─ validation_state (PENDING → VALIDATED → ARCHIVED)
+
+Reports Management:
+  ├─ summary_tables (one per BHS, per month)
+  ├─ monthly_consolidation_table (city-wide MCT)
+  ├─ m1_exports (FHSIS M1 snapshots)
+  └─ m2_exports (FHSIS M2 snapshots)
+
+Health Stations Management:
+  ├─ disease_alerts (Category I cases, real-time)
+  ├─ alert_log (alert history)
+  ├─ bhs_metadata (BHS details, location, staff)
+  └─ bhs_activity_metrics (daily activity snapshots)
+
+Account Management:
+  ├─ auth.users (Supabase Auth table)
+  └─ user_roles (role assignments, scoping)
+
+RLS (Row-Level Security) Enforcement:
+  ├─ BHW sees only their BHS data + clients they entered
+  ├─ RHM sees only their assigned BHS data
+  ├─ PHN sees all STs + consolidated MCT
+  ├─ CHO sees all data (city-wide)
+  └─ System Admin sees audit logs + user management tables
