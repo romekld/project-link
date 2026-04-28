@@ -1,6 +1,6 @@
 'use client'
 
-import { Layers3Icon, RotateCcwIcon } from 'lucide-react'
+import { Layers3Icon, PanelRightOpenIcon, RotateCcwIcon } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ type ChoAnalyticsToolbarProps = {
   onTimeWindowChange: (nextWindow: ChoTimeWindow) => void
   onToggleOverlay: (overlay: ChoOverlayKey) => void
   onResetView: () => void
+  onOpenRail: () => void
 }
 
 const TIME_WINDOW_OPTIONS: ChoTimeWindow[] = ['7d', '30d', '90d']
@@ -36,6 +37,7 @@ export function ChoAnalyticsToolbar({
   onTimeWindowChange,
   onToggleOverlay,
   onResetView,
+  onOpenRail,
 }: ChoAnalyticsToolbarProps) {
   return (
     <div className='border-b bg-background/95 px-4 py-3 backdrop-blur md:px-6'>
@@ -59,6 +61,15 @@ export function ChoAnalyticsToolbar({
 
         <div className='flex flex-col gap-2 xl:items-end'>
           <div className='flex flex-wrap items-center gap-2'>
+            <Button
+              className='xl:hidden'
+              onClick={onOpenRail}
+              size='sm'
+              variant='outline'
+            >
+              <PanelRightOpenIcon className='mr-2 size-4' />
+              Analytics
+            </Button>
             {TIME_WINDOW_OPTIONS.map((option) => (
               <Button
                 key={option}
