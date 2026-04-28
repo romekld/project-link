@@ -1,4 +1,9 @@
-export default function ChoAnalyticsGisPage() {
+import { getChoAnalyticsGisData } from '@/features/cho-analytics/gis/queries'
+
+export default async function ChoAnalyticsGisPage() {
+  const data = await getChoAnalyticsGisData()
+  const defaultWindow = data.windows[data.defaultTimeWindow]
+
   return (
     <section className="flex min-h-full flex-1 flex-col bg-background">
       <div className="flex min-h-0 flex-1 flex-col">
@@ -7,7 +12,7 @@ export default function ChoAnalyticsGisPage() {
             CHO Analytics GIS
           </p>
           <h1 className="text-lg font-semibold text-foreground">
-            Map workspace scaffold
+            GIS dataset scaffold
           </h1>
         </div>
 
@@ -17,17 +22,43 @@ export default function ChoAnalyticsGisPage() {
             <div className="relative flex flex-1 items-center justify-center px-6 text-center">
               <div className="max-w-md space-y-3">
                 <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                  Reserved for map-first analytics
+                  Real geography + typed mock analytics
                 </p>
                 <p className="text-2xl font-semibold text-foreground">
-                  Full-bleed GIS canvas placeholder
+                  CHO GIS data contract is wired
                 </p>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  This route intentionally keeps the shared sidebar while
-                  removing the standard dashboard chrome so the future map,
-                  layers, and spatial analytics panels can take over the
-                  workspace.
+                  The route now loads real city barangay geometry and active
+                  health-station points, then layers deterministic mock
+                  analytics on top for the future choropleth, heatmap, and
+                  right-rail views.
                 </p>
+                <dl className="grid grid-cols-2 gap-3 rounded-xl border bg-background/80 p-4 text-left text-sm">
+                  <div>
+                    <dt className="text-muted-foreground">Barangays</dt>
+                    <dd className="font-semibold text-foreground">
+                      {data.barangays.length}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Stations</dt>
+                    <dd className="font-semibold text-foreground">
+                      {data.stationPoints.length}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">30-day cases</dt>
+                    <dd className="font-semibold text-foreground">
+                      {defaultWindow.kpis.totalCases}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Alerts</dt>
+                    <dd className="font-semibold text-foreground">
+                      {defaultWindow.alerts.length}
+                    </dd>
+                  </div>
+                </dl>
               </div>
             </div>
           </div>
