@@ -7,7 +7,10 @@ import {
   markPendingSync,
   saveDraftStep,
 } from "./hh-draft"
-import type { HouseholdInfoValues } from "@/features/bhw/households/hh-profile-wizard/data/form-schema"
+import type {
+  HouseholdInfoValues,
+  MemberValues,
+} from "@/features/bhw/households/hh-profile-wizard/data/form-schema"
 
 const mockInfo: HouseholdInfoValues = {
   visitDate: "2026-04-29",
@@ -18,6 +21,16 @@ const mockInfo: HouseholdInfoValues = {
   hhHeadPhilhealthMember: false,
   houseNoStreet: "123 Main St",
   barangayId: "00000000-0000-0000-0000-000000000001",
+}
+
+const mockMember: MemberValues = {
+  id: "m1",
+  memberLastName: "Santos",
+  memberFirstName: "Juan",
+  relationshipToHhHead: "3-Son",
+  sex: "M",
+  dateOfBirth: "2012-01-15",
+  dobEstimated: false,
 }
 
 beforeEach(async () => {
@@ -75,7 +88,7 @@ describe("saveDraftStep", () => {
 
   it("updates an existing record without overwriting other fields", async () => {
     await saveDraftStep("my-id", { householdInfo: mockInfo })
-    await saveDraftStep("my-id", { members: [{ id: "m1" } as any] })
+    await saveDraftStep("my-id", { members: [mockMember] })
     const saved = await db.hhDrafts.get("my-id")
     expect(saved?.householdInfo?.respondentLastName).toBe("Santos")
     expect(saved?.members).toHaveLength(1)
