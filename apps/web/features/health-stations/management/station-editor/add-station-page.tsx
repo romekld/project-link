@@ -1,9 +1,14 @@
 import { buildDefaultStationValues, toCityBarangayOptions } from '../data/form-schema'
+import type { ManagementRouteContext } from '../data/route-context'
 import { getCityBarangayRegistryData } from '../../city-barangay-registry/queries'
 import { getNextStationCode, getOperationalBarangays } from '../queries'
 import { StationForm } from './components/station-form'
 
-export async function AddStationPage() {
+type AddStationPageProps = {
+  routeContext: ManagementRouteContext
+}
+
+export async function AddStationPage({ routeContext }: AddStationPageProps) {
   const [registryData, operationalBarangays, stationCode] = await Promise.all([
     getCityBarangayRegistryData(),
     getOperationalBarangays(),
@@ -23,6 +28,7 @@ export async function AddStationPage() {
         })}
         registryRecords={registryData.records}
         operationalBarangays={operationalBarangays}
+        routeContext={routeContext}
       />
     </section>
   )

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from 'next/link'
 import type { Row } from '@tanstack/react-table'
 import {
   MapPinnedIcon,
@@ -10,6 +11,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import type { ManagementRouteContext } from '../data/route-context'
+import { getStationEditPath } from '../data/route-context'
 import type { HealthStation } from '../data/schema'
 import {
   formatCoordinates,
@@ -22,11 +25,13 @@ import { getFacilityTypeLabel } from '../data/options'
 type HealthStationsMobileCardsProps = {
   rows: Row<HealthStation>[]
   onToggleStatus: (station: HealthStation) => void
+  routeContext: ManagementRouteContext
 }
 
 export function HealthStationsMobileCards({
   rows,
   onToggleStatus,
+  routeContext,
 }: HealthStationsMobileCardsProps) {
   if (!rows.length) {
     return (
@@ -108,13 +113,17 @@ export function HealthStationsMobileCards({
             </dl>
 
             <div className='mt-3 grid grid-cols-3 gap-2'>
-              <Button className='h-11' disabled size='sm' variant='outline'>
-                <SquarePenIcon data-icon='inline-start' />
-                Manage
+              <Button asChild className='h-11' size='sm' variant='outline'>
+                <Link href={getStationEditPath(routeContext, station.id)}>
+                  <SquarePenIcon data-icon='inline-start' />
+                  Manage
+                </Link>
               </Button>
-              <Button className='h-11' disabled size='sm' variant='outline'>
-                <MapPinnedIcon data-icon='inline-start' />
-                Pin
+              <Button asChild className='h-11' size='sm' variant='outline'>
+                <Link href={routeContext.pinsPath}>
+                  <MapPinnedIcon data-icon='inline-start' />
+                  Pin
+                </Link>
               </Button>
               <Button
                 className='h-11'

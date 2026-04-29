@@ -1,4 +1,5 @@
 import { EditStationPage } from '@/features/health-stations/management/station-editor'
+import { adminManagementRouteContext } from '@/features/health-stations/management/data/route-context'
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -7,5 +8,10 @@ type PageProps = {
 export default async function Page({ params }: PageProps) {
   const { id } = await params
 
-  return <EditStationPage stationId={id} />
+  return (
+    <EditStationPage
+      routeContext={adminManagementRouteContext}
+      stationId={id}
+    />
+  )
 }

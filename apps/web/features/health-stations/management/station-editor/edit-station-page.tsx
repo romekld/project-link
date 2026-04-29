@@ -13,13 +13,18 @@ import {
   getOperationalBarangays,
   getStationCoverageRows,
 } from '../queries'
+import type { ManagementRouteContext } from '../data/route-context'
 import { StationForm } from './components/station-form'
 
 type EditStationPageProps = {
   stationId: string
+  routeContext: ManagementRouteContext
 }
 
-export async function EditStationPage({ stationId }: EditStationPageProps) {
+export async function EditStationPage({
+  stationId,
+  routeContext,
+}: EditStationPageProps) {
   const [registryData, operationalBarangays, station, coverageRows] = await Promise.all([
     getCityBarangayRegistryData(),
     getOperationalBarangays(),
@@ -39,7 +44,7 @@ export async function EditStationPage({ stationId }: EditStationPageProps) {
         </Alert>
         <div>
           <Button asChild variant='outline'>
-            <Link href='/admin/health-stations/manage'>Back to health stations</Link>
+            <Link href={routeContext.basePath}>Back to health stations</Link>
           </Button>
         </div>
       </section>
@@ -68,6 +73,7 @@ export async function EditStationPage({ stationId }: EditStationPageProps) {
         })}
         registryRecords={registryData.records}
         operationalBarangays={operationalBarangays}
+        routeContext={routeContext}
         activity={{
           createdAt: station.updatedAt,
           updatedAt: station.updatedAt,

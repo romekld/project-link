@@ -26,6 +26,8 @@ import { GisMapPopup } from '@/features/gis-map/components/gis-map-popup'
 import { toRegistryFeatureCollection } from '@/features/health-stations/city-barangay-registry/data/geojson'
 import type { CityBarangayRegistryRecord } from '@/features/health-stations/city-barangay-registry/data/schema'
 import type { GisMapPopupState } from '@/features/gis-map/data/types'
+import type { ManagementRouteContext } from '../data/route-context'
+import { getStationEditPath } from '../data/route-context'
 import {
   buildStationPinViews,
   toStationPointFeatureCollection,
@@ -38,6 +40,7 @@ import type { HealthStation } from '../data/schema'
 type HealthStationsMapWorkspaceProps = {
   stations: HealthStation[]
   registryRecords: CityBarangayRegistryRecord[]
+  routeContext: ManagementRouteContext
 }
 
 type QuickPinFilter = 'all' | 'needs_review' | 'pinned'
@@ -68,6 +71,7 @@ type StationMapPopup =
 export function HealthStationsMapWorkspace({
   stations,
   registryRecords,
+  routeContext,
 }: HealthStationsMapWorkspaceProps) {
   const scopedRegistryRecords = useMemo(
     () => registryRecords.filter((record) => record.inCho2Scope),
@@ -295,6 +299,7 @@ export function HealthStationsMapWorkspace({
 
         <SelectedMapContext
           barangay={selectedBarangay}
+          routeContext={routeContext}
           stationView={selectedView}
         />
 
@@ -335,6 +340,7 @@ export function HealthStationsMapWorkspace({
               <StationMapPopupContent
                 mapPopup={mapPopup}
                 onClose={() => setMapPopup(null)}
+                routeContext={routeContext}
               />
             ) : null}
           </GisMapPopup>
@@ -347,9 +353,11 @@ export function HealthStationsMapWorkspace({
 function StationMapPopupContent({
   mapPopup,
   onClose,
+  routeContext,
 }: {
   mapPopup: StationMapPopup
   onClose: () => void
+  routeContext: ManagementRouteContext
 }) {
   const { popup, barangay, stationView } = mapPopup
   const isStationPopup = mapPopup.type === 'station'
@@ -420,9 +428,9 @@ function StationMapPopupContent({
         </div>
       )}
 
-      {stationView ? (
+      {stationView && routeContext.canManage ? (
         <Button asChild className='w-full' size='sm'>
-          <Link href={`/admin/health-stations/manage/${stationView.station.id}/edit`}>
+          <Link href={getStationEditPath(routeContext, stationView.station.id)}>
             Open Edit Form
           </Link>
         </Button>
@@ -434,9 +442,11 @@ function StationMapPopupContent({
 function SelectedMapContext({
   barangay,
   stationView,
+  routeContext,
 }: {
   barangay: CityBarangayRegistryRecord | null
   stationView: StationPinView | null
+  routeContext: ManagementRouteContext
 }) {
   return (
     <div className='rounded-md border bg-background p-3'>
@@ -504,9 +514,9 @@ function SelectedMapContext({
         </div>
       </div>
 
-      {stationView ? (
+      {stationView && routeContext.canManage ? (
         <Button asChild className='mt-3 w-full' size='sm'>
-          <Link href={`/admin/health-stations/manage/${stationView.station.id}/edit`}>
+          <Link href={getStationEditPath(routeContext, stationView.station.id)}>
             Open Edit Form
           </Link>
         </Button>
