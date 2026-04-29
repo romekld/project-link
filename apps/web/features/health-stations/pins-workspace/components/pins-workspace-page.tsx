@@ -31,6 +31,11 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { toRegistryFeatureCollection } from '@/features/health-stations/city-barangay-registry/data/geojson'
 import type { CityBarangayRegistryRecord } from '@/features/health-stations/city-barangay-registry/data/schema'
+import type { ManagementRouteContext } from '../../management/data/route-context'
+import {
+  getStationCreatePath,
+  getStationEditPath,
+} from '../../management/data/route-context'
 import type {
   HealthStation,
   HealthStationFacilityType,
@@ -49,6 +54,7 @@ import { StationPinMap } from '../../pin-map/components/station-pin-map'
 type PinsWorkspacePageProps = {
   stations: HealthStation[]
   registryRecords: CityBarangayRegistryRecord[]
+  routeContext: ManagementRouteContext
   initialSelectedStationId?: string | null
 }
 
@@ -75,6 +81,7 @@ const facilityTypeFilterOptions: Array<{ label: string; value: HealthStationFaci
 export function PinsWorkspacePage({
   stations,
   registryRecords,
+  routeContext,
   initialSelectedStationId,
 }: PinsWorkspacePageProps) {
   const scopedRegistryRecords = useMemo(
@@ -148,10 +155,10 @@ export function PinsWorkspacePage({
         controls={
           <>
             <Button asChild className='h-10 px-4' variant='outline'>
-              <Link href='/admin/health-stations/manage'>Back to stations</Link>
+              <Link href={routeContext.basePath}>Back to stations</Link>
             </Button>
             <Button asChild className='h-10 px-4'>
-              <Link href='/admin/health-stations/manage/new'>
+              <Link href={getStationCreatePath(routeContext)}>
                 Add station
                 <PlusIcon data-icon='inline-end' />
               </Link>
@@ -306,7 +313,7 @@ export function PinsWorkspacePage({
                     />
                   </div>
                   <Button asChild className='w-full'>
-                    <Link href={`/admin/health-stations/manage/${selectedView.station.id}/edit`}>
+                    <Link href={getStationEditPath(routeContext, selectedView.station.id)}>
                       Open edit form
                     </Link>
                   </Button>

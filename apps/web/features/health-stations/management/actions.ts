@@ -4,8 +4,16 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import type { AddStationValues, EditStationValues } from './data/form-schema'
+import type { ManagementRouteContext } from './data/route-context'
 
 type ActionResult = { success: true; id?: string } | { error: string }
+type ManagementBasePath = ManagementRouteContext['basePath']
+
+function resolveManagementBasePath(basePath?: string): ManagementBasePath {
+  return basePath === '/cho/health-stations/manage'
+    ? '/cho/health-stations/manage'
+    : '/admin/health-stations/manage'
+}
 
 async function getActorId(): Promise<string | null> {
   const supabase = await createClient()
@@ -24,9 +32,13 @@ function buildCoveragePayload(coverageRows: AddStationValues['coverageRows']) {
     }))
 }
 
-export async function createStationAction(values: AddStationValues): Promise<ActionResult> {
+export async function createStationAction(
+  values: AddStationValues,
+  basePath?: string
+): Promise<ActionResult> {
   const actorId = await getActorId()
   if (!actorId) return { error: 'Not authenticated' }
+  const resolvedBasePath = resolveManagementBasePath(basePath)
 
   const admin = createAdminClient()
 
@@ -67,16 +79,18 @@ export async function createStationAction(values: AddStationValues): Promise<Act
     if (coverageError) return { error: coverageError.message }
   }
 
-  revalidatePath('/admin/health-stations/manage')
+  revalidatePath(resolvedBasePath)
   return { success: true, id: (station as { id: string }).id }
 }
 
 export async function updateStationAction(
   stationId: string,
-  values: EditStationValues
+  values: EditStationValues,
+  basePath?: string
 ): Promise<ActionResult> {
   const actorId = await getActorId()
   if (!actorId) return { error: 'Not authenticated' }
+  const resolvedBasePath = resolveManagementBasePath(basePath)
 
   const admin = createAdminClient()
 
@@ -115,18 +129,20 @@ export async function updateStationAction(
 
   if (coverageError) return { error: coverageError.message }
 
-  revalidatePath('/admin/health-stations/manage')
-  revalidatePath(`/admin/health-stations/manage/${stationId}/edit`)
+  revalidatePath(resolvedBasePath)
+  revalidatePath(`${resolvedBasePath}/${stationId}/edit`)
   return { success: true }
 }
 
 export async function setStationStatusAction(
   ids: string[],
   status: 'active' | 'inactive',
-  reason?: string
+  reason?: string,
+  basePath?: string
 ): Promise<ActionResult> {
   const actorId = await getActorId()
   if (!actorId) return { error: 'Not authenticated' }
+  const resolvedBasePath = resolveManagementBasePath(basePath)
 
   if (status === 'inactive' && (!reason || !reason.trim())) {
     return { error: 'Deactivation reason is required' }
@@ -147,6 +163,6 @@ export async function setStationStatusAction(
     if (error) return { error: error.message }
   }
 
-  revalidatePath('/admin/health-stations/manage')
+  revalidatePath(resolvedBasePath)
   return { success: true }
 }

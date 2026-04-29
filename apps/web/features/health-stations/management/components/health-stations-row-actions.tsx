@@ -16,16 +16,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { ManagementRouteContext } from '../data/route-context'
+import { getStationEditPath } from '../data/route-context'
 import type { HealthStation } from '../data/schema'
 
 type HealthStationsRowActionsProps = {
   station: HealthStation
   onToggleStatus: (station: HealthStation) => void
+  routeContext: ManagementRouteContext
 }
 
 export function HealthStationsRowActions({
   station,
   onToggleStatus,
+  routeContext,
 }: HealthStationsRowActionsProps) {
   const canActivate = station.status === 'inactive'
 
@@ -43,13 +47,13 @@ export function HealthStationsRowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='w-48'>
         <DropdownMenuItem asChild>
-          <Link href={`/admin/health-stations/manage/${station.id}/edit`}>
+          <Link href={getStationEditPath(routeContext, station.id)}>
             <Building2Icon data-icon='inline-start' />
             Manage station
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href='/admin/health-stations/pins'>
+          <Link href={routeContext.pinsPath}>
             Pin on map
             <MapPinnedIcon data-icon='inline-end' />
           </Link>

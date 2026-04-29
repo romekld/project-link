@@ -26,6 +26,7 @@ import {
   type AddStationValues,
   type OperationalBarangayOption,
 } from "../../data/form-schema";
+import type { ManagementRouteContext } from "../../data/route-context";
 import { createStationAction, updateStationAction } from "../../actions";
 import { StationFormMainPanel } from "./station-form-main-panel";
 import { StationFormRightPanel } from "./station-form-right-panel";
@@ -40,6 +41,7 @@ type StationFormProps = {
   defaultValues?: Partial<AddStationValues>;
   registryRecords: CityBarangayRegistryRecord[];
   operationalBarangays: OperationalBarangayOption[];
+  routeContext: ManagementRouteContext;
   activity?: {
     createdAt?: string;
     updatedAt?: string;
@@ -53,6 +55,7 @@ export function StationForm({
   defaultValues,
   registryRecords,
   operationalBarangays,
+  routeContext,
   activity,
 }: StationFormProps) {
   const router = useRouter();
@@ -177,16 +180,17 @@ export function StationForm({
     startTransition(async () => {
       const result =
         mode === "create"
-          ? await createStationAction(payload)
+          ? await createStationAction(payload, routeContext.basePath)
           : await updateStationAction(
               stationId!,
               payload as Parameters<typeof updateStationAction>[1],
+              routeContext.basePath,
             );
 
       if ("error" in result) {
         setSubmitError(result.error);
       } else {
-        router.push("/admin/health-stations/manage");
+        router.push(routeContext.basePath);
       }
     });
   }
@@ -248,7 +252,7 @@ export function StationForm({
               controls={
                 <>
                   <Button asChild className="h-10 px-4" variant="outline">
-                    <Link href="/admin/health-stations/manage">Cancel</Link>
+                    <Link href={routeContext.basePath}>Cancel</Link>
                   </Button>
                   <Button
                     className="h-10 px-4"

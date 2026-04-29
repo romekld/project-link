@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import type { ManagementRouteContext } from '../data/route-context'
 import type { HealthStation, HealthStationStatus } from '../data/schema'
 import {
   facilityTypeOptions,
@@ -38,6 +39,7 @@ import { HealthStationsMobileCards } from './health-stations-mobile-cards'
 type HealthStationsTableProps = {
   data: HealthStation[]
   onSetStatus: (stationIds: string[], nextStatus: HealthStationStatus) => void
+  routeContext: ManagementRouteContext
 }
 
 function getBarangayFilterOptions(data: HealthStation[]) {
@@ -55,6 +57,7 @@ function getBarangayFilterOptions(data: HealthStation[]) {
 export function HealthStationsTable({
   data,
   onSetStatus,
+  routeContext,
 }: HealthStationsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [rowSelection, setRowSelection] = useState({})
@@ -80,8 +83,9 @@ export function HealthStationsTable({
               nextStatus === 'active' ? 'Activate station' : 'Deactivate station',
           })
         },
+        routeContext,
       }),
-    []
+    [routeContext]
   )
 
   const barangayFilterOptions = useMemo(
@@ -251,6 +255,7 @@ export function HealthStationsTable({
                   : 'Deactivate station',
             })
           }}
+          routeContext={routeContext}
           rows={table.getRowModel().rows}
         />
       </div>

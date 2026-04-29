@@ -27,6 +27,13 @@ export const choNavSections = [
             icon: MapIcon,
             match: ["/cho/health-stations/city-barangays"],
           },
+          {
+            id: "cho-health-stations-manage-bhs",
+            title: "Manage BHS",
+            href: "/cho/health-stations/manage",
+            icon: Building2Icon,
+            match: ["/cho/health-stations/manage", "/cho/health-stations/manage/*"],
+          },
         ],
       },
       {

@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
+import type { ManagementRouteContext } from '../data/route-context'
 import type { HealthStation } from '../data/schema'
 import {
   formatCoordinates,
@@ -16,10 +17,12 @@ import { HealthStationsRowActions } from './health-stations-row-actions'
 
 type HealthStationsColumnsConfig = {
   onToggleStatus: (station: HealthStation) => void
+  routeContext: ManagementRouteContext
 }
 
 export function getHealthStationsColumns({
   onToggleStatus,
+  routeContext,
 }: HealthStationsColumnsConfig): ColumnDef<HealthStation>[] {
   return [
     {
@@ -195,6 +198,7 @@ export function getHealthStationsColumns({
       cell: ({ row }) => (
         <HealthStationsRowActions
           onToggleStatus={onToggleStatus}
+          routeContext={routeContext}
           station={row.original}
         />
       ),

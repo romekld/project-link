@@ -1,6 +1,6 @@
 import { HealthStationsManagementPage } from '@/features/health-stations/management'
 import { getCityBarangayRegistryData } from '@/features/health-stations/city-barangay-registry/queries'
-import { adminManagementRouteContext } from '@/features/health-stations/management/data/route-context'
+import { choManagementRouteContext } from '@/features/health-stations/management/data/route-context'
 import { getHealthStations } from '@/features/health-stations/management/queries'
 
 export default async function Page() {
@@ -13,7 +13,7 @@ export default async function Page() {
     <HealthStationsManagementPage
       registryRecords={registryData.records}
       initialStations={stations}
-      routeContext={adminManagementRouteContext}
+      routeContext={choManagementRouteContext}
     />
   )
 }

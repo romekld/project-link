@@ -1,14 +1,11 @@
 "use client"
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
-import {
-  Building2Icon,
-  MapIcon,
-  MapPinCheckIcon,
-  MapPinIcon,
-  XIcon,
-} from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { HeatmapLayer } from '@deck.gl/aggregation-layers'
+import { MapboxOverlay } from '@deck.gl/mapbox'
+import type { Map as MapLibreMap } from 'maplibre-gl'
+import { Building2Icon, MapIcon, XIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,29 +18,26 @@ import {
 } from '@/components/ui/combobox'
 import { Separator } from '@/components/ui/separator'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { cn } from '@/lib/utils'
 import { GisMapPopup } from '@/features/gis-map/components/gis-map-popup'
+import { GisMapShell } from '@/features/gis-map/components/gis-map-shell'
+import type { GisMapPopupState } from '@/features/gis-map/data/types'
 import { toRegistryFeatureCollection } from '@/features/health-stations/city-barangay-registry/data/geojson'
 import type { CityBarangayRegistryRecord } from '@/features/health-stations/city-barangay-registry/data/schema'
-import type { GisMapPopupState } from '@/features/gis-map/data/types'
+import { cn } from '@/lib/utils'
+import { buildStationPinViews, toStationPointFeatureCollection, type StationPinView } from '../../pin-map/data'
+import { buildMockHeatmapPoints, type HealthStationsHeatmapPoint, type HeatmapSignalLevel } from '../data/mock-heatmap'
+import { getFacilityTypeLabel, getPinStatusLabel } from '../data/options'
 import type { ManagementRouteContext } from '../data/route-context'
 import { getStationEditPath } from '../data/route-context'
-import {
-  buildStationPinViews,
-  toStationPointFeatureCollection,
-  type StationPinView,
-} from '../../pin-map/data'
-import { StationPinMap } from '../../pin-map/components/station-pin-map'
-import { getFacilityTypeLabel, getPinStatusLabel } from '../data/options'
 import type { HealthStation } from '../data/schema'
 
-type HealthStationsMapWorkspaceProps = {
+type HealthStationsAnalyticsWorkspaceProps = {
   stations: HealthStation[]
   registryRecords: CityBarangayRegistryRecord[]
   routeContext: ManagementRouteContext
 }
 
-type QuickPinFilter = 'all' | 'needs_review' | 'pinned'
+type HeatFilter = 'all' | HeatmapSignalLevel
 
 type FocusOption = {
   value: string
@@ -54,27 +48,30 @@ type FocusOption = {
   barangayId?: string
 }
 
-type StationMapPopup =
+type AnalyticsMapPopup =
   | {
-    type: 'barangay'
-    popup: GisMapPopupState
-    barangay: CityBarangayRegistryRecord
-    stationView: StationPinView | null
-  }
+      type: 'barangay'
+      popup: GisMapPopupState
+      barangay: CityBarangayRegistryRecord
+      stationView: StationPinView | null
+    }
   | {
-    type: 'station'
-    popup: GisMapPopupState
-    stationView: StationPinView
-    barangay: CityBarangayRegistryRecord | null
-  }
+      type: 'station'
+      popup: GisMapPopupState
+      stationView: StationPinView
+      barangay: CityBarangayRegistryRecord | null
+    }
 
-export function HealthStationsMapWorkspace({
+export function HealthStationsAnalyticsWorkspace({
   stations,
   registryRecords,
   routeContext,
-}: HealthStationsMapWorkspaceProps) {
+}: HealthStationsAnalyticsWorkspaceProps) {
   const scopedRegistryRecords = useMemo(
-    () => registryRecords.filter((record) => record.inCho2Scope),
+    () => {
+      const scoped = registryRecords.filter((record) => record.inCho2Scope)
+      return scoped.length ? scoped : registryRecords
+    },
     [registryRecords]
   )
   const [selectedStationId, setSelectedStationId] = useState<string | null>(
@@ -82,19 +79,17 @@ export function HealthStationsMapWorkspace({
   )
   const [selectedBarangayId, setSelectedBarangayId] = useState<string | null>(null)
   const [focusValue, setFocusValue] = useState('')
-  const [quickFilter, setQuickFilter] = useState<QuickPinFilter>('all')
-  const [mapPopup, setMapPopup] = useState<StationMapPopup | null>(null)
+  const [heatFilter, setHeatFilter] = useState<HeatFilter>('all')
+  const [mapPopup, setMapPopup] = useState<AnalyticsMapPopup | null>(null)
 
   const pinViews = useMemo(
     () => buildStationPinViews(stations, scopedRegistryRecords),
     [scopedRegistryRecords, stations]
   )
-
   const selectedView = useMemo(
     () => pinViews.find((view) => view.id === selectedStationId) ?? null,
     [pinViews, selectedStationId]
   )
-
   const selectedBarangay = useMemo(() => {
     if (selectedBarangayId) {
       return (
@@ -106,41 +101,63 @@ export function HealthStationsMapWorkspace({
     return selectedView?.physicalBarangay ?? null
   }, [scopedRegistryRecords, selectedBarangayId, selectedView])
 
-  const visibleViews = useMemo(
+  const allHeatPoints = useMemo(
+    () => buildMockHeatmapPoints(stations, scopedRegistryRecords),
+    [scopedRegistryRecords, stations]
+  )
+  const visibleHeatPoints = useMemo(
     () =>
-      pinViews.filter((view) => {
-        if (quickFilter === 'pinned') return view.station.pinStatus === 'pinned'
-        if (quickFilter === 'needs_review') return view.station.pinStatus !== 'pinned'
-        return true
-      }),
-    [pinViews, quickFilter]
+      heatFilter === 'all'
+        ? allHeatPoints
+        : allHeatPoints.filter((point) => point.level === heatFilter),
+    [allHeatPoints, heatFilter]
   )
 
   const boundaryCollection = useMemo(
     () => toRegistryFeatureCollection(scopedRegistryRecords),
     [scopedRegistryRecords]
   )
-
   const pointCollection = useMemo(
-    () => toStationPointFeatureCollection(visibleViews),
-    [visibleViews]
+    () => toStationPointFeatureCollection(pinViews),
+    [pinViews]
   )
-
   const focusOptions = useMemo(
     () => buildFocusOptions(pinViews, scopedRegistryRecords),
     [pinViews, scopedRegistryRecords]
   )
-
   const focusOptionsByValue = useMemo(
     () => new Map(focusOptions.map((option) => [option.value, option])),
     [focusOptions]
   )
 
-  const totalPins = pinViews.filter((view) => view.station.pinStatus === 'pinned').length
-  const needsReview = pinViews.length - totalPins
-  const selectedPointId = visibleViews.some((view) => view.id === selectedView?.id)
-    ? selectedView?.id ?? null
-    : null
+  const pointCounts = useMemo(
+    () => ({
+      critical: allHeatPoints.filter((point) => point.level === 'critical').length,
+      elevated: allHeatPoints.filter((point) => point.level === 'elevated').length,
+      watch: allHeatPoints.filter((point) => point.level === 'watch').length,
+    }),
+    [allHeatPoints]
+  )
+
+  const selectedBarangayPoints = useMemo(
+    () =>
+      selectedBarangay
+        ? allHeatPoints.filter((point) => point.barangayId === selectedBarangay.id)
+        : [],
+    [allHeatPoints, selectedBarangay]
+  )
+  const selectedStationPoints = useMemo(
+    () =>
+      selectedView
+        ? allHeatPoints.filter((point) => point.stationId === selectedView.station.id)
+        : [],
+    [allHeatPoints, selectedView]
+  )
+  const selectedPointId = selectedView?.id ?? null
+  const peakWeight = visibleHeatPoints.reduce(
+    (highest, point) => Math.max(highest, point.weight),
+    0
+  )
 
   function handleFocusChange(value: string | null) {
     const nextValue = value ?? ''
@@ -148,8 +165,6 @@ export function HealthStationsMapWorkspace({
 
     const option = focusOptionsByValue.get(nextValue)
     if (!option) return
-
-    setQuickFilter('all')
 
     if (option.type === 'station' && option.stationId) {
       const view = pinViews.find((item) => item.id === option.stationId)
@@ -197,7 +212,7 @@ export function HealthStationsMapWorkspace({
     if (!view) return
 
     setSelectedStationId(id)
-    setSelectedBarangayId(view?.physicalBarangay?.id ?? null)
+    setSelectedBarangayId(view.physicalBarangay?.id ?? null)
     setFocusValue('')
     setMapPopup({
       type: 'station',
@@ -212,16 +227,18 @@ export function HealthStationsMapWorkspace({
       <aside className='flex min-h-0 flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4'>
         <div className='flex flex-col gap-3'>
           <div>
-            <h2 className='font-heading text-base font-semibold'>CHO2 Map Summary</h2>
+            <h2 className='font-heading text-base font-semibold'>CHO2 Heatmap Summary</h2>
             <p className='text-xs text-muted-foreground'>
-              Focus boundaries and station pins at a glance.
+              Showcase clustered demand intensity around station coverage.
             </p>
           </div>
           <div className='flex flex-wrap gap-2'>
             <Badge variant='secondary'>{scopedRegistryRecords.length} CHO2 barangays</Badge>
             <Badge variant='outline'>{pinViews.length} stations</Badge>
-            <Badge variant='outline'>{totalPins} pinned</Badge>
-            <Badge variant={needsReview ? 'outline' : 'default'}>{needsReview} review</Badge>
+            <Badge variant='outline'>{visibleHeatPoints.length} signals</Badge>
+            <Badge variant={peakWeight > 1.2 ? 'default' : 'outline'}>
+              Peak {peakWeight.toFixed(2)}
+            </Badge>
           </div>
 
           <div className='grid gap-1.5'>
@@ -232,7 +249,7 @@ export function HealthStationsMapWorkspace({
               onValueChange={handleFocusChange}
             >
               <ComboboxInput
-                aria-label='Find station or barangay on map'
+                aria-label='Find station or barangay in heatmap'
                 className='w-full'
                 placeholder='Search station or barangay'
                 showClear
@@ -242,7 +259,6 @@ export function HealthStationsMapWorkspace({
                 <ComboboxList>
                   {(value) => {
                     const option = focusOptionsByValue.get(value)
-
                     if (!option) return null
 
                     return (
@@ -262,34 +278,29 @@ export function HealthStationsMapWorkspace({
           </div>
 
           <div className='grid gap-1.5'>
-            <span className='text-xs text-muted-foreground'>Visible pins</span>
+            <span className='text-xs text-muted-foreground'>Visible heat signals</span>
             <ToggleGroup
-              aria-label='Filter visible health station pins'
+              aria-label='Filter visible heatmap intensity bands'
               className='w-full'
               onValueChange={(value) => {
-                if (value) setQuickFilter(value as QuickPinFilter)
+                if (value) setHeatFilter(value as HeatFilter)
               }}
               size='sm'
               type='single'
-              value={quickFilter}
+              value={heatFilter}
               variant='outline'
             >
-              <ToggleGroupItem aria-label='Show all pins' className='flex-1' value='all'>
+              <ToggleGroupItem className='flex-1' value='all'>
                 All
               </ToggleGroupItem>
-              <ToggleGroupItem
-                aria-label='Show pins that need review'
-                className='flex-1'
-                value='needs_review'
-              >
-                Review
+              <ToggleGroupItem className='flex-1' value='critical'>
+                Critical
               </ToggleGroupItem>
-              <ToggleGroupItem
-                aria-label='Show pinned stations'
-                className='flex-1'
-                value='pinned'
-              >
-                Pinned
+              <ToggleGroupItem className='flex-1' value='elevated'>
+                Elevated
+              </ToggleGroupItem>
+              <ToggleGroupItem className='flex-1' value='watch'>
+                Watch
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -297,36 +308,32 @@ export function HealthStationsMapWorkspace({
 
         <Separator />
 
-        <SelectedMapContext
+        <SelectedAnalyticsContext
           barangay={selectedBarangay}
+          barangayPoints={selectedBarangayPoints}
           routeContext={routeContext}
+          stationPoints={selectedStationPoints}
           stationView={selectedView}
         />
 
         <div className='mt-auto rounded-md border bg-background p-3'>
           <p className='text-sm font-medium'>Legend</p>
           <div className='mt-2 grid gap-2 text-xs'>
-            <LegendRow label='Pinned' tone='default' />
-            <LegendRow label='Needs review' tone='outline' />
-            <LegendRow label='Selected boundary' tone='secondary' />
+            <HeatLegendRow color='bg-red-500' count={pointCounts.critical} label='Critical hotspots' />
+            <HeatLegendRow color='bg-orange-500' count={pointCounts.elevated} label='Elevated hotspots' />
+            <HeatLegendRow color='bg-yellow-400' count={pointCounts.watch} label='Watch activity' />
+            <HeatLegendRow color='bg-green-500' count={pinViews.length} label='Station coverage anchors' />
           </div>
         </div>
       </aside>
 
       <div className='h-[520px] min-w-0 overflow-hidden rounded-lg border bg-card lg:h-full lg:min-h-0'>
-        <StationPinMap
+        <AnalyticsHeatmapMap
           boundaryCollection={boundaryCollection}
-          className='h-full min-h-[520px] rounded-none border-0 lg:min-h-0'
-          initialFitScope='boundaries'
-          onBoundaryClick={(id, popup) => {
-            handleBoundaryFocus(id, popup)
-          }}
-          onMapMoveStart={() => {
-            setMapPopup(null)
-          }}
-          onPointClick={(id, popup) => {
-            handlePointFocus(id, popup)
-          }}
+          heatPoints={visibleHeatPoints}
+          onBoundaryClick={handleBoundaryFocus}
+          onMapMoveStart={() => setMapPopup(null)}
+          onPointClick={handlePointFocus}
           pointCollection={pointCollection}
           selectedBoundaryId={selectedBarangay?.id ?? null}
           selectedPointId={selectedPointId}
@@ -337,52 +344,151 @@ export function HealthStationsMapWorkspace({
             showCloseButton={false}
           >
             {mapPopup ? (
-              <StationMapPopupContent
+              <AnalyticsPopupContent
+                allHeatPoints={allHeatPoints}
                 mapPopup={mapPopup}
                 onClose={() => setMapPopup(null)}
                 routeContext={routeContext}
               />
             ) : null}
           </GisMapPopup>
-        </StationPinMap>
+        </AnalyticsHeatmapMap>
       </div>
     </section>
   )
 }
 
-function StationMapPopupContent({
+function AnalyticsHeatmapMap({
+  boundaryCollection,
+  pointCollection,
+  selectedBoundaryId,
+  selectedPointId,
+  heatPoints,
+  onBoundaryClick,
+  onPointClick,
+  onMapMoveStart,
+  children,
+}: {
+  boundaryCollection: ReturnType<typeof toRegistryFeatureCollection>
+  pointCollection: ReturnType<typeof toStationPointFeatureCollection>
+  selectedBoundaryId: string | null
+  selectedPointId: string | null
+  heatPoints: HealthStationsHeatmapPoint[]
+  onBoundaryClick: (id: string, popup: GisMapPopupState) => void
+  onPointClick: (id: string, popup: GisMapPopupState) => void
+  onMapMoveStart: () => void
+  children: ReactNode
+}) {
+  const [map, setMap] = useState<MapLibreMap | null>(null)
+  const overlayRef = useRef<MapboxOverlay | null>(null)
+
+  useEffect(() => {
+    if (!map || overlayRef.current) return
+
+    const overlay = new MapboxOverlay({
+      interleaved: true,
+      layers: [],
+    })
+
+    map.addControl(overlay)
+    overlayRef.current = overlay
+
+    return () => {
+      if (map && overlayRef.current) {
+        map.removeControl(overlayRef.current)
+      }
+
+      overlayRef.current = null
+    }
+  }, [map])
+
+  useEffect(() => {
+    if (!overlayRef.current) return
+
+    overlayRef.current.setProps({
+      layers: [
+        new HeatmapLayer<HealthStationsHeatmapPoint>({
+          id: 'health-stations-management-heatmap',
+          data: heatPoints,
+          getPosition: (point) => [point.lng, point.lat],
+          getWeight: (point) => point.weight,
+          aggregation: 'SUM',
+          colorRange: [
+            [34, 197, 94],
+            [163, 230, 53],
+            [250, 204, 21],
+            [249, 115, 22],
+            [239, 68, 68],
+          ],
+          intensity: 1.2,
+          radiusPixels: 48,
+          threshold: 0.04,
+          opacity: 0.52,
+        }),
+      ],
+    })
+  }, [heatPoints])
+
+  return (
+    <GisMapShell
+      className='h-full min-h-[520px] rounded-none border-0 lg:min-h-0'
+      featureCollection={boundaryCollection}
+      initialFitScope='boundaries'
+      onMapMoveStart={onMapMoveStart}
+      onMapReadyChange={setMap}
+      onPointClick={onPointClick}
+      onPolygonClick={onBoundaryClick}
+      pointFeatureCollection={pointCollection}
+      previewGeometry={null}
+      selectedId={selectedBoundaryId}
+      selectedPointId={selectedPointId}
+    >
+      {children}
+    </GisMapShell>
+  )
+}
+
+function AnalyticsPopupContent({
   mapPopup,
+  allHeatPoints,
   onClose,
   routeContext,
 }: {
-  mapPopup: StationMapPopup
+  mapPopup: AnalyticsMapPopup
+  allHeatPoints: HealthStationsHeatmapPoint[]
   onClose: () => void
   routeContext: ManagementRouteContext
 }) {
-  const { popup, barangay, stationView } = mapPopup
+  const { barangay, stationView } = mapPopup
   const isStationPopup = mapPopup.type === 'station'
+  const stationPoints = stationView
+    ? allHeatPoints.filter((point) => point.stationId === stationView.station.id)
+    : []
+  const barangayPoints = barangay
+    ? allHeatPoints.filter((point) => point.barangayId === barangay.id)
+    : []
+  const metrics = summarizePoints(isStationPopup ? stationPoints : barangayPoints)
 
   return (
     <div className='flex flex-col gap-3'>
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0'>
-
           <h3 className='truncate font-heading text-sm font-semibold'>
             {isStationPopup
               ? stationView?.station.name
               : barangay?.name ?? 'Selected barangay'}
           </h3>
-          <p className='truncate text-xs text-muted-foreground mb-2'>
+          <p className='mb-2 truncate text-xs text-muted-foreground'>
             {isStationPopup
               ? stationView?.station.physicalBarangayName
               : stationView?.station.name ?? 'No station assigned'}
           </p>
           <Badge variant={isStationPopup ? 'default' : 'secondary'}>
-            {isStationPopup ? 'Health Station' : 'Barangay Boundary'}
+            {isStationPopup ? 'Station hotspot profile' : 'Barangay hotspot profile'}
           </Badge>
         </div>
         <Button
-          aria-label='Close map popup'
+          aria-label='Close analytics popup'
           onClick={onClose}
           size='icon'
           type='button'
@@ -394,39 +500,12 @@ function StationMapPopupContent({
 
       <Separator />
 
-      {isStationPopup && stationView ? (
-        <div className='grid gap-2 text-xs'>
-          <InfoRow label='Station code' value={stationView.station.stationCode} />
-          <InfoRow
-            label='Type'
-            value={getFacilityTypeLabel(stationView.station.facilityType)}
-          />
-          <InfoRow
-            label='Pin status'
-            value={getPinStatusLabel(stationView.station.pinStatus)}
-          />
-          <InfoRow
-            label='Coordinates'
-            value={`${stationView.coordinates.lat.toFixed(5)}, ${stationView.coordinates.lng.toFixed(5)}`}
-          />
-        </div>
-      ) : (
-        <div className='grid gap-2 text-xs'>
-          <InfoRow label='PSGC' value={barangay?.pcode ?? 'No boundary'} />
-          <InfoRow
-            label='Area'
-            value={barangay ? `${barangay.sourceAreaSqKm.toFixed(2)} sq km` : 'Unknown'}
-          />
-          <InfoRow
-            label='Assigned station'
-            value={stationView?.station.name ?? 'No station assigned'}
-          />
-          <InfoRow
-            label='Click point'
-            value={`${popup.lngLat.lat.toFixed(5)}, ${popup.lngLat.lng.toFixed(5)}`}
-          />
-        </div>
-      )}
+      <div className='grid gap-2 text-xs'>
+        <InfoRow label='Signals' value={String(metrics.count)} />
+        <InfoRow label='Peak intensity' value={metrics.peak.toFixed(2)} />
+        <InfoRow label='Critical count' value={String(metrics.critical)} />
+        <InfoRow label='Average weight' value={metrics.average.toFixed(2)} />
+      </div>
 
       {stationView && routeContext.canManage ? (
         <Button asChild className='w-full' size='sm'>
@@ -439,15 +518,22 @@ function StationMapPopupContent({
   )
 }
 
-function SelectedMapContext({
+function SelectedAnalyticsContext({
   barangay,
+  barangayPoints,
   stationView,
+  stationPoints,
   routeContext,
 }: {
   barangay: CityBarangayRegistryRecord | null
+  barangayPoints: HealthStationsHeatmapPoint[]
   stationView: StationPinView | null
+  stationPoints: HealthStationsHeatmapPoint[]
   routeContext: ManagementRouteContext
 }) {
+  const stationMetrics = summarizePoints(stationPoints)
+  const barangayMetrics = summarizePoints(barangayPoints)
+
   return (
     <div className='rounded-md border bg-background p-3'>
       <div className='flex items-start justify-between gap-3'>
@@ -479,14 +565,8 @@ function SelectedMapContext({
                 label='Type'
                 value={getFacilityTypeLabel(stationView.station.facilityType)}
               />
-              <InfoRow
-                label='Status'
-                value={stationView.station.status === 'active' ? 'Active' : 'Inactive'}
-              />
-              <InfoRow
-                label='Coordinates'
-                value={`${stationView.coordinates.lat.toFixed(5)}, ${stationView.coordinates.lng.toFixed(5)}`}
-              />
+              <InfoRow label='Signals' value={String(stationMetrics.count)} />
+              <InfoRow label='Peak' value={stationMetrics.peak.toFixed(2)} />
             </>
           ) : (
             <p className='text-muted-foreground'>No station assigned to this boundary.</p>
@@ -498,17 +578,18 @@ function SelectedMapContext({
         <div className='grid gap-1.5'>
           <div className='flex items-center gap-2 text-sm font-medium'>
             <MapIcon className='size-4 text-muted-foreground' />
-            <span className='truncate'>Barangay Boundary</span>
+            <span className='truncate'>Barangay Heat Profile</span>
           </div>
           {barangay ? (
             <>
               <InfoRow label='Name' value={barangay.name} />
               <InfoRow label='PSGC' value={barangay.pcode} />
-              <InfoRow label='Area' value={`${barangay.sourceAreaSqKm.toFixed(2)} sq km`} />
+              <InfoRow label='Signals' value={String(barangayMetrics.count)} />
+              <InfoRow label='Peak' value={barangayMetrics.peak.toFixed(2)} />
             </>
           ) : (
             <p className='text-muted-foreground'>
-              Select a boundary or station to inspect coverage.
+              Select a boundary or station to inspect hotspot density.
             </p>
           )}
         </div>
@@ -532,7 +613,7 @@ function buildFocusOptions(
   const stationOptions: FocusOption[] = pinViews.map((view) => ({
     value: `${view.station.name} (${view.station.stationCode})`,
     label: view.station.name,
-    description: `${view.station.physicalBarangayName} · ${getPinStatusLabel(view.station.pinStatus)}`,
+    description: `${view.station.physicalBarangayName} - ${view.station.pinStatus}`,
     type: 'station',
     stationId: view.id,
     barangayId: view.physicalBarangay?.id ?? undefined,
@@ -541,7 +622,7 @@ function buildFocusOptions(
   const barangayOptions: FocusOption[] = barangays.map((barangay) => ({
     value: `Barangay ${barangay.name}`,
     label: barangay.name,
-    description: `${barangay.pcode} · CHO2 boundary`,
+    description: `${barangay.pcode} - CHO2 hotspot zone`,
     type: 'barangay',
     barangayId: barangay.id,
   }))
@@ -551,29 +632,51 @@ function buildFocusOptions(
   )
 }
 
+function summarizePoints(points: HealthStationsHeatmapPoint[]) {
+  if (!points.length) {
+    return {
+      count: 0,
+      peak: 0,
+      average: 0,
+      critical: 0,
+    }
+  }
+
+  const totalWeight = points.reduce((sum, point) => sum + point.weight, 0)
+
+  return {
+    count: points.length,
+    peak: points.reduce((max, point) => Math.max(max, point.weight), 0),
+    average: totalWeight / points.length,
+    critical: points.filter((point) => point.level === 'critical').length,
+  }
+}
+
+function HeatLegendRow({
+  label,
+  color,
+  count,
+}: {
+  label: string
+  color: string
+  count: number
+}) {
+  return (
+    <div className='flex items-center justify-between gap-3'>
+      <div className='flex items-center gap-2'>
+        <span className={cn('size-2.5 rounded-full', color)} />
+        <span className='text-muted-foreground'>{label}</span>
+      </div>
+      <span className='font-medium'>{count}</span>
+    </div>
+  )
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className='flex items-start justify-between gap-3'>
       <span className='text-muted-foreground'>{label}</span>
       <span className='text-right font-medium'>{value}</span>
-    </div>
-  )
-}
-
-function LegendRow({
-  label,
-  tone,
-}: {
-  label: string
-  tone: 'default' | 'secondary' | 'outline'
-}) {
-  return (
-    <div className='flex items-center justify-between gap-3'>
-      <span className='text-muted-foreground'>{label}</span>
-      <Badge className={cn(tone === 'default' && 'gap-1')} variant={tone}>
-        {tone === 'default' ? <MapPinCheckIcon /> : <MapPinIcon />}
-        {label}
-      </Badge>
     </div>
   )
 }
