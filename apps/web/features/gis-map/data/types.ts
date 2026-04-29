@@ -40,6 +40,9 @@ export type GisPolygonFeatureProperties = {
   pcode: string
   inCho2Scope: boolean
   stagedAction?: string | null
+  fillColor?: string | null
+  fillOpacity?: number | null
+  lineColor?: string | null
   [key: string]: string | number | boolean | null | undefined
 }
 

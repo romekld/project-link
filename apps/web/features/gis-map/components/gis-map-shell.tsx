@@ -53,6 +53,7 @@ type GisMapShellProps = {
   onPointDragEnd?: (coordinates: { lat: number; lng: number }) => void
   onMapClick?: (event: MapMouseEvent) => void
   onMapMoveStart?: () => void
+  onMapReadyChange?: (map: MapLibreMap | null) => void
   initialFitScope?: 'all' | 'boundaries'
   fitKey?: number | string
   children?: React.ReactNode
@@ -72,6 +73,7 @@ export function GisMapShell({
   onPointDragEnd,
   onMapClick,
   onMapMoveStart,
+  onMapReadyChange,
   initialFitScope = 'all',
   fitKey,
   children,
@@ -96,6 +98,7 @@ export function GisMapShell({
   const fitKeyRef = useRef<number | string | undefined>(undefined)
   const mapClickRef = useRef(onMapClick)
   const moveStartRef = useRef(onMapMoveStart)
+  const mapReadyChangeRef = useRef(onMapReadyChange)
   const hydrateLayersRef = useRef<(map: MapLibreMap) => void>(() => undefined)
   const fitBoundsRef = useRef<[[number, number], [number, number]] | null>(
     null
@@ -197,6 +200,10 @@ export function GisMapShell({
   }, [onMapMoveStart])
 
   useEffect(() => {
+    mapReadyChangeRef.current = onMapReadyChange
+  }, [onMapReadyChange])
+
+  useEffect(() => {
     fitBoundsRef.current = fitBounds
   }, [fitBounds])
 
@@ -226,6 +233,7 @@ export function GisMapShell({
     map.on('load', () => {
       mapReadyRef.current = true
       hydrateLayersRef.current(map)
+      mapReadyChangeRef.current?.(map)
 
       if (fitBoundsRef.current) {
         map.fitBounds(fitBoundsRef.current as LngLatBoundsLike, {
@@ -250,6 +258,7 @@ export function GisMapShell({
     mapRef.current = map
 
     return () => {
+      mapReadyChangeRef.current?.(null)
       mapReadyRef.current = false
       mapRef.current = null
       map.remove()

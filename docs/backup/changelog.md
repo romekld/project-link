@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] - 2026-04-20
 
 ### Added
+- **CHO analytics GIS workspace** - added a CHO-only `/cho/analytics/gis` route with route-specific dashboard chrome, typed mock analytics, a map-first `MapLibre + deck.gl` workspace, and a docked analytics rail with charts, drilldown, and compact alert feed.
 - **Barangay GIS Workspace** - added a map-first admin workspace for city barangay registry inspection, GeoJSON import review scaffolding, and CHO2 Coverage Planner staging.
 - **Shared GIS map foundation** - added reusable MapLibre shell, popup, layer, and style helpers under `features/gis-map`, with light/dark basemap behavior tied to the app theme.
 - **Coverage Planner UI** - added staged add/remove workflow, batch reason review, reset/apply controls, map/table sync, and coverage summary panels.
